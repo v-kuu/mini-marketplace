@@ -2,14 +2,17 @@ package service
 
 import (
 	"github.com/v-kuu/mini-marketplace/internal/model"
-	"github.com/v-kuu/mini-marketplace/internal/repository"
 )
 
-type ProductService struct {
-	repo *repository.ProductRepository
+type ProductRepository interface {
+	List() []model.Product
 }
 
-func NewProductService(repo *repository.ProductRepository) *ProductService {
+type ProductService struct {
+	repo ProductRepository
+}
+
+func NewProductService(repo ProductRepository) *ProductService {
 	return &ProductService{repo: repo}
 }
 
