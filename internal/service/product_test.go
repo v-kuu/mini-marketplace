@@ -27,7 +27,7 @@ func TestProductService_ListProducts(t *testing.T) {
 	}{
 		{
 			name: "Returns all products",
-			repo: &fakeProductRepo {
+			repo: &fakeProductRepo{
 				products: []model.Product{
 					{ID: "1", Name: "Coffee", Price: 499},
 					{ID: "2", Name: "Sandwich", Price: 899},
@@ -38,7 +38,7 @@ func TestProductService_ListProducts(t *testing.T) {
 		},
 		{
 			name: "Returns empty list when no products",
-			repo: &fakeProductRepo {
+			repo: &fakeProductRepo{
 				products: []model.Product{},
 			},
 			wantLen:  0,
@@ -46,7 +46,7 @@ func TestProductService_ListProducts(t *testing.T) {
 		},
 		{
 			name: "Repository error",
-			repo: &fakeProductRepo {
+			repo: &fakeProductRepo{
 				err: repoErr,
 			},
 			wantErr: true,
