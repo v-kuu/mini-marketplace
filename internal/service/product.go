@@ -5,7 +5,7 @@ import (
 )
 
 type ProductRepository interface {
-	List() []model.Product
+	List() ([]model.Product, error)
 }
 
 type ProductService struct {
@@ -16,6 +16,10 @@ func NewProductService(repo ProductRepository) *ProductService {
 	return &ProductService{repo: repo}
 }
 
-func (s *ProductService) ListProducts() []model.Product {
-	return s.repo.List()
+func (s *ProductService) ListProducts() ([]model.Product, error) {
+	products, err := s.repo.List()
+	if err != nil {
+		return nil, err
+	}
+	return products, nil
 }
