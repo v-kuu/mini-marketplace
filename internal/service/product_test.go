@@ -20,7 +20,6 @@ func (f *fakeProductRepo) List(ctx context.Context) ([]model.Product, error) {
 }
 
 func TestProductService_ListProducts(t *testing.T) {
-	repoErr := errors.New("Repository failure")
 
 	tests := []struct {
 		name string
@@ -50,7 +49,7 @@ func TestProductService_ListProducts(t *testing.T) {
 		{
 			name: "Repository error",
 			repo: &fakeProductRepo{
-				err: repoErr,
+				err: errors.New("Repository failure"),
 			},
 			wantErr: true,
 		},
