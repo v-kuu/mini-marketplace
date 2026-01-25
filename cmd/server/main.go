@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"context"
 	"log"
 	"net/http"
@@ -8,16 +9,27 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	_ "github.com/mattn/go-sqlite3"
+
 	"github.com/v-kuu/mini-marketplace/internal/api"
 	"github.com/v-kuu/mini-marketplace/internal/service"
-	"github.com/v-kuu/mini-marketplace/internal/repository"
+	"github.com/v-kuu/mini-marketplace/internal/repository/sqlite"
 )
 
 func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", api.HealthHandler)
 
-	repo := &repository.ProductRepository{}
+	db, err := sql.Open("sqlite3", "file:products.db?_foreign_keys=on")
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := db.Ping(); err != nil {
+		log.Fatal(err)
+	}
+
+	repo := sqlite.NewProductRepository(db)
 	svc := service.NewProductService(repo)
 	handler := api.NewProductHandler(svc)
 
