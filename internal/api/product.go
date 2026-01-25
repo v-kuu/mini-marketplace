@@ -3,11 +3,12 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"context"
 	"github.com/v-kuu/mini-marketplace/internal/model"
 )
 
 type ProductLister interface {
-	ListProducts() ([]model.Product, error)
+	ListProducts(ctx context.Context) ([]model.Product, error)
 }
 
 type ProductHandler struct {
@@ -18,10 +19,11 @@ func NewProductHandler(s ProductLister) *ProductHandler {
 	return &ProductHandler{service: s}
 }
 
-func (h *ProductHandler) List(w http.ResponseWriter, _ *http.Request) {
-	products, err := h.service.ListProducts()
+func (h *ProductHandler) List(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	products, err := h.service.ListProducts(ctx)
 	if err != nil {
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		http.Error(w, "Internal error", http.StatusInternalServerError)
 		return
 	}
 

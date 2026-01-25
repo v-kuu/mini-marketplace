@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 	"encoding/json"
+	"context"
 	"github.com/v-kuu/mini-marketplace/internal/model"
 )
 
@@ -14,14 +15,14 @@ type fakeProductService struct {
 	err error
 }
 
-func (f *fakeProductService) ListProducts() ([]model.Product, error) {
+func (f *fakeProductService) ListProducts(ctx context.Context) ([]model.Product, error) {
 	if f.err != nil {
 		return nil, f.err
 	}
 	return f.products, nil
 }
 
-func testProductHandler_List(t *testing.T) {
+func TestProductHandler_List(t *testing.T) {
 	tests := []struct {
 		name string
 		service *fakeProductService

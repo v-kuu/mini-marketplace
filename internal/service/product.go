@@ -1,11 +1,12 @@
 package service
 
 import (
+	"context"
 	"github.com/v-kuu/mini-marketplace/internal/model"
 )
 
 type ProductRepository interface {
-	List() ([]model.Product, error)
+	List(ctx context.Context) ([]model.Product, error)
 }
 
 type ProductService struct {
@@ -16,8 +17,14 @@ func NewProductService(repo ProductRepository) *ProductService {
 	return &ProductService{repo: repo}
 }
 
-func (s *ProductService) ListProducts() ([]model.Product, error) {
-	products, err := s.repo.List()
+func (s *ProductService) ListProducts(ctx context.Context) ([]model.Product, error) {
+	select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+	}
+
+	products, err := s.repo.List(ctx)
 	if err != nil {
 		return nil, err
 	}

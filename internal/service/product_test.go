@@ -1,15 +1,18 @@
 package service
 
-import "github.com/v-kuu/mini-marketplace/internal/model"
-import "testing"
-import "errors"
+import (
+	"github.com/v-kuu/mini-marketplace/internal/model"
+	"testing"
+	"errors"
+	"context"
+)
 
 type fakeProductRepo struct {
 	products []model.Product
 	err error
 }
 
-func (f *fakeProductRepo) List() ([]model.Product, error) {
+func (f *fakeProductRepo) List(ctx context.Context) ([]model.Product, error) {
 	if f.err != nil {
 		return nil, f.err
 	}
@@ -57,7 +60,7 @@ func TestProductService_ListProducts(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			svc := NewProductService(tt.repo)
-			products, err := svc.ListProducts()
+			products, err := svc.ListProducts(context.Background())
 
 			if tt.wantErr && err == nil {
 				t.Fatalf("Expected error, got nil")
