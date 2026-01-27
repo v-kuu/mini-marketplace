@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/v-kuu/mini-marketplace/internal/model"
 )
 
 func setupTestDB(t *testing.T) *sql.DB {
@@ -104,5 +105,24 @@ func TestProductRepository_GetByID(t *testing.T) {
 	product, err = repo.GetByID(ctx, "3")
 	if err == nil {
 		t.Fatalf("GetByID should have failed")
+	}
+}
+
+func TestProductRepository_Create(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	repo := NewProductRepository(db)
+
+	ctx := context.Background()
+
+	err := repo.Create(ctx, model.Product{ID: "1", Name: "Coffee", Price: 499})
+	if err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+
+	product, err := repo.GetByID(ctx, "1")
+	if product.Name != "Coffee" {
+		t.Fatalf("Expected Coffee, got %s", product.Name)
 	}
 }

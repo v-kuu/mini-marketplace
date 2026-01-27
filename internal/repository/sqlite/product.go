@@ -61,3 +61,12 @@ func (r *ProductRepository) GetByID(ctx context.Context, id string) (*model.Prod
 	}
 	return &p, nil
 }
+
+func (r *ProductRepository) Create(ctx context.Context, p model.Product) error {
+	_, err := r.db.ExecContext(
+		ctx,
+		`INSERT INTO products (id, name, price) VALUES (?, ?, ?)`,
+		p.ID, p.Name, p.Price,
+	)
+	return err
+}
