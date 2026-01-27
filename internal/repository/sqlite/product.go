@@ -3,6 +3,7 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	_ "github.com/mattn/go-sqlite3"
 
@@ -32,6 +33,9 @@ func (r *ProductRepository) List(ctx context.Context) ([]model.Product, error) {
 	for rows.Next() {
 		var p model.Product
 		if err := rows.Scan(&p.ID, &p.Name, &p.Price); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil, nil
+			}
 			return nil, err
 		}
 		products = append(products, p)
@@ -42,4 +46,18 @@ func (r *ProductRepository) List(ctx context.Context) ([]model.Product, error) {
 	}
 
 	return products, nil
+}
+
+func (r *ProductRepository) GetByID(ctx context.Context, id string) (*model.Product, error) {
+	row := r.db.QueryRowContext(
+		ctx,
+		`SELECT id, name, price FROM products WHERE id = ?`,
+		id,
+	)
+
+	var p model.Product
+	if err := row.Scan(&p.ID, &p.Name, &p.Price); err != nil {
+		return nil, err
+	}
+	return &p, nil
 }

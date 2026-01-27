@@ -18,9 +18,6 @@ import (
 )
 
 func main() {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/health", api.HealthHandler)
-
 	db, err := sql.Open("sqlite3", "file:products.db?_foreign_keys=on")
 	if err != nil {
 		log.Fatal(err)
@@ -29,11 +26,16 @@ func main() {
 		log.Fatal(err)
 	}
 
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/health", api.HealthHandler)
+
 	repo := sqlite.NewProductRepository(db)
 	svc := service.NewProductService(repo)
 	handler := api.NewProductHandler(svc)
 
-	mux.HandleFunc("/products", handler.List)
+	mux.HandleFunc("/products", handler.Products)
+	mux.HandleFunc("/products/", handler.ProductByID)
 
 	server := &http.Server{
 		Addr: ":8080",

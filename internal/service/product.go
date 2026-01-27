@@ -7,6 +7,7 @@ import (
 
 type ProductRepository interface {
 	List(ctx context.Context) ([]model.Product, error)
+	GetByID(ctx context.Context, id string) (*model.Product, error)
 }
 
 type ProductService struct {
@@ -29,4 +30,8 @@ func (s *ProductService) ListProducts(ctx context.Context) ([]model.Product, err
 		return nil, err
 	}
 	return products, nil
+}
+
+func (s *ProductService) GetProduct(ctx context.Context, id string) (*model.Product, error) {
+	return s.repo.GetByID(ctx, id)
 }

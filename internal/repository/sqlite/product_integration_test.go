@@ -75,3 +75,34 @@ func TestProductRepository_List_ContextCancelled(t *testing.T) {
 		t.Fatalf("Expected error due to cancelled context")
 	}
 }
+
+func TestProductRepository_GetByID(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	repo := NewProductRepository(db)
+
+	ctx := context.Background()
+
+	_, err := db.Exec(
+		`INSERT INTO products (id, name, price) VALUES (?, ?, ?)`,
+		"1", "Coffee", 499,
+	)
+	if err != nil {
+		t.Fatalf("Failed to insert product: %v", err)
+	}
+
+	product, err := repo.GetByID(ctx, "1")
+	if err != nil {
+		t.Fatalf("GetByID failed: %v", err)
+	}
+
+	if product.Name != "Coffee" {
+		t.Fatalf("Expected Coffee, got %s", product.Name)
+	}
+
+	product, err = repo.GetByID(ctx, "3")
+	if err == nil {
+		t.Fatalf("GetByID should have failed")
+	}
+}
