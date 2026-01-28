@@ -67,6 +67,24 @@ func (f *fakeProductService) DeleteProduct(ctx context.Context, id string) error
 	return service.ErrProductNotFound
 }
 
+func (f *fakeProductService) UpdateProduct(ctx context.Context, id string, p model.Product) error {
+	if id == "" || p.Name == "" || p.Price <= 0 {
+		return service.ErrInvalidProduct
+	}
+	if p.ID != "" && p.ID != id {
+		return service.ErrIDMismatch
+	}
+
+	p.ID = id
+	for i, product := range f.products {
+		if product.ID == id {
+			f.products[i] = p
+			return nil
+		}
+	}
+	return service.ErrProductNotFound
+}
+
 func TestProductHandler_List(t *testing.T) {
 	tests := []struct {
 		name string
@@ -335,6 +353,106 @@ func TestProductHandler_Delete(t *testing.T) {
 				if err := json.NewDecoder(res.Body).Decode(&product); err != nil {
 					t.Fatalf("Failed to decode response: %v", err)
 				}
+			}
+		})
+	}
+}
+
+func TestProductHandler_Update(t *testing.T) {
+	tests := []struct {
+		name string
+		id string
+		body string
+		service *fakeProductService
+		wantStatus int
+		wantLen int
+		wantName string
+	}{
+		{
+			name: "Success",
+			id: "1",
+			body: `{"id":"1","name":"Tea","price":599}`,
+			service: &fakeProductService{
+				products: []model.Product{
+					{ID: "1", Name: "Coffee", Price: 499},
+					{ID: "2", Name: "Sandwich", Price: 899},
+				},
+			},
+			wantStatus: http.StatusOK,
+			wantLen: 2,
+			wantName: "Tea",
+		},
+		{
+			name: "Not found",
+			id: "2",
+			body: `{"id":"2","name":"Tea","price":599}`,
+			service: &fakeProductService{
+				products: []model.Product{
+					{ID: "1", Name: "Coffee", Price: 499},
+				},
+			},
+			wantStatus: http.StatusNotFound,
+			wantLen: 1,
+			wantName: "Coffee",
+		},
+		{
+			name: "Invalid product",
+			id: "",
+			body: `{"id":"","name":"","price":0}`,
+			service: &fakeProductService{
+				products: []model.Product{
+					{ID: "1", Name: "Tea", Price: 499},
+				},
+			},
+			wantStatus: http.StatusBadRequest,
+			wantLen: 1,
+			wantName: "Tea",
+		},
+		{
+			name: "ID Mismatch",
+			id: "1",
+			body: `{"id":"2","name":"Tea","price":599}`,
+			service: &fakeProductService{
+				products: []model.Product{
+					{ID: "1", Name: "Coffee", Price: 499},
+					{ID: "2", Name: "Sandwich", Price: 899},
+				},
+			},
+			wantStatus: http.StatusBadRequest,
+			wantLen: 2,
+			wantName: "Coffee",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			handler := NewProductHandler(tt.service)
+
+			req := httptest.NewRequest(http.MethodPut, "/products/"+tt.id, strings.NewReader(tt.body))
+			req.Header.Set("Content-Type", "application/json")
+			rec := httptest.NewRecorder()
+
+			handler.ProductByID(rec, req)
+
+			res := rec.Result()
+			defer res.Body.Close()
+
+			if res.StatusCode != tt.wantStatus {
+				t.Fatalf("Expected status %d, got %d", tt.wantStatus, res.StatusCode)
+			}
+
+			if tt.wantLen != len(tt.service.products) {
+				t.Fatalf("expected %d elements, got %d", tt.wantLen, len(tt.service.products))
+			}
+			if tt.wantStatus == http.StatusOK {
+				var product model.Product
+				if err := json.NewDecoder(res.Body).Decode(&product); err != nil {
+					t.Fatalf("Failed to decode response: %v", err)
+				}
+			}
+			if tt.wantName != tt.service.products[0].Name {
+				t.Fatalf("expected %s, got %s", tt.wantName, tt.service.products[0].Name)
 			}
 		})
 	}

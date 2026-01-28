@@ -96,3 +96,26 @@ func (r *ProductRepository) Delete(ctx context.Context, id string) error {
 
 	return nil
 }
+
+func (r *ProductRepository) Update(ctx context.Context, p model.Product) error {
+	res, err := r.db.ExecContext(
+		ctx,
+		`UPDATE products SET name = ?, price = ? WHERE id = ?`,
+		p.Name, p.Price, p.ID,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rows == 0 {
+		return service.ErrProductNotFound
+	}
+
+	return nil
+}

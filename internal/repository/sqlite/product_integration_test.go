@@ -166,3 +166,35 @@ func TestProductRepository_Delete(t *testing.T) {
 		t.Fatalf("Delete should have failed")
 	}
 }
+
+func TestProductRepository_Update(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	repo := NewProductRepository(db)
+
+	ctx := context.Background()
+
+	_, err := db.Exec(
+		`INSERT INTO products (id, name, price) VALUES (?, ?, ?)`,
+		"1", "Coffee", 499,
+	)
+	if err != nil {
+		t.Fatalf("Failed to insert product: %v", err)
+	}
+
+	err = repo.Update(ctx, model.Product{ID: "1", Name: "Tea", Price: 499})
+	if err != nil {
+		t.Fatalf("Update failed: %v", err)
+	}
+
+	product, err := repo.GetByID(ctx, "1")
+	if err == nil && product.Name != "Tea" {
+		t.Fatalf("Database was not updated")
+	}
+
+	err = repo.Update(ctx, model.Product{ID: "", Name: "", Price: 0})
+	if err == nil {
+		t.Fatalf("Update should have failed")
+	}
+}

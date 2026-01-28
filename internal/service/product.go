@@ -11,6 +11,7 @@ type ProductRepository interface {
 	GetByID(ctx context.Context, id string) (*model.Product, error)
 	Create(ctx context.Context, p model.Product) error
 	Delete(ctx context.Context, id string) error
+	Update(ctx context.Context, p model.Product) error
 }
 
 type ProductService struct {
@@ -68,6 +69,12 @@ func (s *ProductService) CreateProduct(ctx context.Context, p model.Product) err
 }
 
 func (s *ProductService) DeleteProduct(ctx context.Context, id string) error {
+	select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+	}
+
 	if id == "" {
 		return ErrInvalidProduct
 	}
@@ -81,4 +88,31 @@ func (s *ProductService) DeleteProduct(ctx context.Context, id string) error {
 	}
 
 	return s.repo.Delete(ctx, id)
+}
+
+func (s *ProductService) UpdateProduct(ctx context.Context, id string, p model.Product) error {
+	select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+	}
+
+	if id == "" || p.Name == "" || p.Price <= 0 {
+		return ErrInvalidProduct
+	}
+
+	if p.ID != "" && p.ID != id {
+		return ErrIDMismatch
+	}
+
+	existing, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if existing == nil {
+		return ErrProductNotFound
+	}
+	
+	p.ID = id
+	return s.repo.Update(ctx, p)
 }
