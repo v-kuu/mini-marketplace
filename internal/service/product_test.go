@@ -413,3 +413,103 @@ func TestProductService_Update(t *testing.T) {
 		})
 	}
 }
+
+func TestProductService_Patch(t *testing.T) {
+
+	newName := "Tea"
+	invalidName := ""
+	tests := []struct {
+		name string
+		id string
+		patch ProductPatch
+		repo *fakeProductRepo
+		wantLen int
+		wantErr bool
+		wantP model.Product
+	}{
+		{
+			name: "Success",
+			id: "1",
+			patch: ProductPatch{Name: &newName},
+			repo: &fakeProductRepo{
+				products: []model.Product{
+					{ID: "1", Name: "Coffee", Price: 499},
+					{ID: "2", Name: "Sandwich", Price: 899},
+				},
+			},
+			wantLen: 2,
+			wantErr: false,
+			wantP: model.Product{ID: "1", Name: newName, Price: 499},
+		},
+		{
+			name: "Not found",
+			id: "3",
+			patch: ProductPatch{Name: &newName},
+			repo: &fakeProductRepo{
+				products: []model.Product{
+					{ID: "1", Name: "Coffee", Price: 499},
+					{ID: "2", Name: "Sandwich", Price: 899},
+				},
+			},
+			wantLen:  2,
+			wantErr: true,
+			wantP: model.Product{ID: "1", Name: "Coffee", Price: 499},
+		},
+		{
+			name: "Invalid id",
+			id: "",
+			patch: ProductPatch{Name: &newName},
+			repo: &fakeProductRepo{
+				products: []model.Product{
+					{ID: "1", Name: "Coffee", Price: 499},
+					{ID: "2", Name: "Sandwich", Price: 899},
+				},
+			},
+			wantLen: 2,
+			wantErr: true,
+			wantP: model.Product{ID: "1", Name: "Coffee", Price: 499},
+		},
+		{
+			name: "Invalid Product",
+			id: "1",
+			patch: ProductPatch{Name: &invalidName},
+			repo: &fakeProductRepo{
+				products: []model.Product{
+					{ID: "1", Name: "Coffee", Price: 499},
+					{ID: "2", Name: "Sandwich", Price: 899},
+				},
+			},
+			wantLen:  2,
+			wantErr: true,
+			wantP: model.Product{ID: "1", Name: "Coffee", Price: 499},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			svc := NewProductService(tt.repo)
+			err := svc.PatchProduct(context.Background(), tt.id, tt.patch)
+
+			if tt.wantLen != len(tt.repo.products) {
+				t.Fatalf("expected %d elements, got %d", tt.wantLen, len(tt.repo.products))
+			}
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("expected error, got nil")
+				}
+				if tt.repo.products[0].Name != "Coffee" {
+					t.Fatalf("expected coffee, got %s", tt.repo.products[0].Name)
+				}
+			}
+			if !tt.wantErr {
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				if tt.wantP != tt.repo.products[0] {
+					t.Fatalf("expected %+v, got %+v", tt.wantP, tt.repo.products[0])
+				}
+			}
+		})
+	}
+}

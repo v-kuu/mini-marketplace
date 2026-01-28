@@ -116,3 +116,39 @@ func (s *ProductService) UpdateProduct(ctx context.Context, id string, p model.P
 	p.ID = id
 	return s.repo.Update(ctx, p)
 }
+
+func (s *ProductService) PatchProduct(ctx context.Context, id string, patch ProductPatch) error {
+	select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+	}
+
+	if id == "" {
+		return ErrInvalidProduct
+	}
+
+	existing, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if existing == nil {
+		return ErrProductNotFound
+	}
+
+	if patch.Name != nil {
+		if *patch.Name == "" {
+			return ErrInvalidProduct
+		}
+		existing.Name = *patch.Name
+	}
+
+	if patch.Price != nil {
+		if *patch.Price <= 0 {
+			return ErrInvalidProduct
+		}
+		existing.Price = *patch.Price
+	}
+
+	return s.repo.Update(ctx, *existing)
+}
