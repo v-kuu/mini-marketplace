@@ -14,6 +14,7 @@ type ProductService interface {
 	ListProducts(ctx context.Context) ([]model.Product, error)
 	GetProduct(ctx context.Context, id string) (*model.Product, error)
 	CreateProduct(ctx context.Context, p model.Product) error
+	DeleteProduct(ctx context.Context, id string) error
 }
 
 type ProductHandler struct {
@@ -73,14 +74,12 @@ func (h *ProductHandler) createProduct(w http.ResponseWriter, r *http.Request) {
 
 func (h *ProductHandler) ProductByID(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimPrefix(r.URL.Path, "/products/")
-	if id == "" {
-		http.NotFound(w, r)
-		return
-	}
 
 	switch r.Method {
 		case http.MethodGet:
 			h.getProduct(w, r, id)
+		case http.MethodDelete:
+			h.deleteProduct(w, r, id)
 		default:
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -103,4 +102,23 @@ func (h *ProductHandler) getProduct(w http.ResponseWriter, r *http.Request, id s
 
 	w.Header().Set("Content-type", "application/json")
 	json.NewEncoder(w).Encode(product)
+}
+
+func (h *ProductHandler) deleteProduct(w http.ResponseWriter, r *http.Request, id string) {
+	ctx := r.Context()
+
+	err := h.service.DeleteProduct(ctx, id)
+	if err != nil {
+		switch err {
+			case service.ErrInvalidProduct:
+				http.Error(w, err.Error(), http.StatusBadRequest)
+			case service.ErrProductNotFound:
+				http.Error(w, err.Error(), http.StatusNotFound)
+			default:
+				http.Error(w, "internal error", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

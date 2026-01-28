@@ -52,6 +52,21 @@ func (f *fakeProductService) CreateProduct(ctx context.Context, p model.Product)
 	return nil
 }
 
+func (f *fakeProductService) DeleteProduct(ctx context.Context, id string) error {
+	if id == "" {
+		return service.ErrInvalidProduct
+	}
+
+	for i, product := range f.products {
+		if product.ID == id {
+			f.products = append(f.products[:i], f.products[i+1:]...)
+			return nil
+		}
+	}
+
+	return service.ErrProductNotFound
+}
+
 func TestProductHandler_List(t *testing.T) {
 	tests := []struct {
 		name string
@@ -245,6 +260,80 @@ func TestProductHandler_Create(t *testing.T) {
 				}	
 				if len(products) != tt.wantLen {
 					t.Fatalf("Expected %d products, got %d", tt.wantLen, len(products))
+				}
+			}
+		})
+	}
+}
+
+func TestProductHandler_Delete(t *testing.T) {
+	tests := []struct {
+		name string
+		id string
+		service *fakeProductService
+		wantStatus int
+		wantLen int
+	}{
+		{
+			name: "Success",
+			id: "2",
+			service: &fakeProductService{
+				products: []model.Product{
+					{ID: "1", Name: "Coffee", Price: 499},
+					{ID: "2", Name: "Sandwich", Price: 899},
+				},
+			},
+			wantStatus: http.StatusNoContent,
+			wantLen: 1,
+		},
+		{
+			name: "Not found",
+			id: "2",
+			service: &fakeProductService{
+				products: []model.Product{
+					{ID: "1", Name: "Tea", Price: 499},
+				},
+			},
+			wantStatus: http.StatusNotFound,
+			wantLen: 1,
+		},
+		{
+			name: "Invalid product",
+			id: "",
+			service: &fakeProductService{
+				products: []model.Product{
+					{ID: "1", Name: "Tea", Price: 499},
+				},
+			},
+			wantStatus: http.StatusBadRequest,
+			wantLen: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			handler := NewProductHandler(tt.service)
+
+			req := httptest.NewRequest(http.MethodDelete, "/products/"+tt.id, nil)
+			rec := httptest.NewRecorder()
+
+			handler.ProductByID(rec, req)
+
+			res := rec.Result()
+			defer res.Body.Close()
+
+			if res.StatusCode != tt.wantStatus {
+				t.Fatalf("Expected status %d, got %d", tt.wantStatus, res.StatusCode)
+			}
+
+			if tt.wantLen != len(tt.service.products) {
+				t.Fatalf("expected %d elements, got %d", tt.wantLen, len(tt.service.products))
+			}
+			if tt.wantStatus == http.StatusOK {
+				var product model.Product
+				if err := json.NewDecoder(res.Body).Decode(&product); err != nil {
+					t.Fatalf("Failed to decode response: %v", err)
 				}
 			}
 		})

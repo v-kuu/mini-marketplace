@@ -29,7 +29,7 @@ func (f *fakeProductRepo) GetByID(ctx context.Context, id string) (*model.Produc
 			return &product, nil
 		}
 	}
-	return nil, errors.New("not found")
+	return nil, nil
 }
 
 func (f *fakeProductRepo) Create(ctx context.Context, p model.Product) error {
@@ -45,6 +45,21 @@ func (f *fakeProductRepo) Create(ctx context.Context, p model.Product) error {
 
 	f.products = append(f.products, p)
 	return nil
+}
+
+func (f *fakeProductRepo) Delete(ctx context.Context, id string) error {
+	if id == "" {
+		return ErrInvalidProduct
+	}
+
+	for i, product := range f.products {
+		if product.ID == id {
+			f.products = append(f.products[:i], f.products[i+1:]...)
+			return nil
+		}
+	}
+
+	return ErrProductNotFound
 }
 
 func TestProductService_ListProducts(t *testing.T) {
@@ -124,10 +139,13 @@ func TestProductService_GetProduct(t *testing.T) {
 		{
 			name: "Returns not found",
 			repo: &fakeProductRepo{
-				products: []model.Product{},
+				products: []model.Product{
+					{ID: "1", Name: "Coffee", Price: 499},
+					{ID: "2", Name: "Sandwich", Price: 899},
+				},
 			},
-			wantLen:  0,
-			wantErr: true,
+			wantLen:  2,
+			wantErr: false,
 		},
 		{
 			name: "Repository error",
@@ -212,6 +230,72 @@ func TestProductService_Create(t *testing.T) {
 
 			if !tt.wantErr && tt.wantLen != len(tt.repo.products) {
 				t.Fatalf("expected %d products, got %d", tt.wantLen, len(tt.repo.products))
+			}
+			if tt.wantErr && err == nil {
+				t.Fatalf("expected error, got nil")
+			}
+			if !tt.wantErr && err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+		})
+	}
+}
+
+func TestProductService_Delete(t *testing.T) {
+
+	tests := []struct {
+		name string
+		id string
+		repo *fakeProductRepo
+		wantLen int
+		wantErr bool
+	}{
+		{
+			name: "Success",
+			id: "2",
+			repo: &fakeProductRepo{
+				products: []model.Product{
+					{ID: "1", Name: "Coffee", Price: 499},
+					{ID: "2", Name: "Sandwich", Price: 899},
+				},
+			},
+			wantLen: 1,
+			wantErr: false,
+		},
+		{
+			name: "Not found",
+			id: "3",
+			repo: &fakeProductRepo{
+				products: []model.Product{
+					{ID: "1", Name: "Coffee", Price: 499},
+					{ID: "2", Name: "Sandwich", Price: 899},
+				},
+			},
+			wantLen:  2,
+			wantErr: true,
+		},
+		{
+			name: "Invalid id",
+			id: "",
+			repo: &fakeProductRepo{
+				products: []model.Product{
+					{ID: "1", Name: "Coffee", Price: 499},
+					{ID: "2", Name: "Sandwich", Price: 899},
+				},
+			},
+			wantLen: 2,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			svc := NewProductService(tt.repo)
+			err := svc.DeleteProduct(context.Background(), tt.id)
+
+			if tt.wantLen != len(tt.repo.products) {
+				t.Fatalf("expected %d elements, got %d", tt.wantLen, len(tt.repo.products))
 			}
 			if tt.wantErr && err == nil {
 				t.Fatalf("expected error, got nil")

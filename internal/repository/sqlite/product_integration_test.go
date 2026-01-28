@@ -103,7 +103,7 @@ func TestProductRepository_GetByID(t *testing.T) {
 	}
 
 	product, err = repo.GetByID(ctx, "3")
-	if err == nil {
+	if product != nil && err == nil {
 		t.Fatalf("GetByID should have failed")
 	}
 }
@@ -124,5 +124,45 @@ func TestProductRepository_Create(t *testing.T) {
 	product, err := repo.GetByID(ctx, "1")
 	if product.Name != "Coffee" {
 		t.Fatalf("Expected Coffee, got %s", product.Name)
+	}
+}
+
+func TestProductRepository_Delete(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	repo := NewProductRepository(db)
+
+	ctx := context.Background()
+
+	_, err := db.Exec(
+		`INSERT INTO products (id, name, price) VALUES (?, ?, ?)`,
+		"1", "Coffee", 499,
+	)
+	if err != nil {
+		t.Fatalf("Failed to insert product: %v", err)
+	}
+	_, err = db.Exec(
+		`INSERT INTO products (id, name, price) VALUES (?, ?, ?)`,
+		"2", "Tea", 499,
+	)
+	if err != nil {
+		t.Fatalf("Failed to insert product: %v", err)
+	}
+
+
+	err = repo.Delete(ctx, "2")
+	if err != nil {
+		t.Fatalf("Delete failed")
+	}
+
+	product, err := repo.GetByID(ctx, "2")
+	if product != nil && err == nil {
+		t.Fatalf("Element was not deleted")
+	}
+
+	err = repo.Delete(ctx, "2")
+	if err == nil {
+		t.Fatalf("Delete should have failed")
 	}
 }

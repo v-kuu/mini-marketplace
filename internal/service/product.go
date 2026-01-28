@@ -10,6 +10,7 @@ type ProductRepository interface {
 	List(ctx context.Context) ([]model.Product, error)
 	GetByID(ctx context.Context, id string) (*model.Product, error)
 	Create(ctx context.Context, p model.Product) error
+	Delete(ctx context.Context, id string) error
 }
 
 type ProductService struct {
@@ -54,10 +55,30 @@ func (s *ProductService) CreateProduct(ctx context.Context, p model.Product) err
 		return ErrInvalidProduct
 	}
 
-	existing, _ := s.repo.GetByID(ctx, p.ID)
+	existing, err := s.repo.GetByID(ctx, p.ID)
+	if err != nil {
+		return err
+	}
+
 	if existing != nil {
 		return ErrProductAlreadyExists
 	}
 
 	return s.repo.Create(ctx, p)
+}
+
+func (s *ProductService) DeleteProduct(ctx context.Context, id string) error {
+	if id == "" {
+		return ErrInvalidProduct
+	}
+
+	existing, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if existing == nil {
+		return ErrProductNotFound
+	}
+
+	return s.repo.Delete(ctx, id)
 }

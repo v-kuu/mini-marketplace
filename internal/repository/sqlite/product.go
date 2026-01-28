@@ -8,6 +8,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/v-kuu/mini-marketplace/internal/model"
+	"github.com/v-kuu/mini-marketplace/internal/service"
 )
 
 type ProductRepository struct {
@@ -57,6 +58,9 @@ func (r *ProductRepository) GetByID(ctx context.Context, id string) (*model.Prod
 
 	var p model.Product
 	if err := row.Scan(&p.ID, &p.Name, &p.Price); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return &p, nil
@@ -69,4 +73,26 @@ func (r *ProductRepository) Create(ctx context.Context, p model.Product) error {
 		p.ID, p.Name, p.Price,
 	)
 	return err
+}
+
+func (r *ProductRepository) Delete(ctx context.Context, id string) error {
+	res, err := r.db.ExecContext(
+		ctx,
+		`DELETE FROM products WHERE id = ?`,
+		id,
+	)
+	if err != nil {
+		return err
+	}
+
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rows == 0 {
+		return service.ErrProductNotFound
+	}
+
+	return nil
 }
