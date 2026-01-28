@@ -37,6 +37,9 @@ internal/model      Domain models
 - Dependency injection via interfaces
 - CI pipeline (Github Actions)
 
+### Transactions
+All write operations are executed within database transactions to ensure atomicity and consistency, even for multi-step operations such as update and delete
+
 ## Testing
 - Unit tests (table-driven)
 - HTTP handler tests (```httptest```)

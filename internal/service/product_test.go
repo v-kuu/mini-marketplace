@@ -63,13 +63,18 @@ func (f *fakeProductRepo) Delete(ctx context.Context, id string) error {
 }
 
 func (f *fakeProductRepo) Update(ctx context.Context, p model.Product) error {
-	if p.ID == "" || p.Name == "" || p.Price <= 0 {
+	if p.ID == "" {
 		return ErrInvalidProduct
 	}
 
 	for i, product := range f.products {
 		if product.ID == p.ID {
-			f.products[i] = p
+			if p.Name != "" {
+				f.products[i].Name = p.Name
+			}
+			if p.Price > 0 {
+				f.products[i].Price = p.Price
+			}
 			return nil
 		}
 	}

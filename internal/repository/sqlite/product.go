@@ -67,55 +67,80 @@ func (r *ProductRepository) GetByID(ctx context.Context, id string) (*model.Prod
 }
 
 func (r *ProductRepository) Create(ctx context.Context, p model.Product) error {
-	_, err := r.db.ExecContext(
-		ctx,
-		`INSERT INTO products (id, name, price) VALUES (?, ?, ?)`,
-		p.ID, p.Name, p.Price,
-	)
-	return err
+	return withTx(ctx, r.db, func(tx *sql.Tx) error {
+		_, err := tx.ExecContext(
+			ctx,
+			`INSERT INTO products (id, name, price) VALUES (?, ?, ?)`,
+			p.ID, p.Name, p.Price,
+		)
+		return err
+	})
 }
 
 func (r *ProductRepository) Delete(ctx context.Context, id string) error {
-	res, err := r.db.ExecContext(
-		ctx,
-		`DELETE FROM products WHERE id = ?`,
-		id,
-	)
-	if err != nil {
-		return err
-	}
+	return withTx(ctx, r.db, func(tx *sql.Tx) error {
+		res, err := tx.ExecContext(
+			ctx,
+			`DELETE FROM products WHERE id = ?`,
+			id,
+		)
+		if err != nil {
+			return err
+		}
 
-	rows, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
+		rows, err := res.RowsAffected()
+		if err != nil {
+			return err
+		}
 
-	if rows == 0 {
-		return service.ErrProductNotFound
-	}
+		if rows == 0 {
+			return service.ErrProductNotFound
+		}
 
-	return nil
+		return nil
+	})
 }
 
 func (r *ProductRepository) Update(ctx context.Context, p model.Product) error {
-	res, err := r.db.ExecContext(
-		ctx,
-		`UPDATE products SET name = ?, price = ? WHERE id = ?`,
-		p.Name, p.Price, p.ID,
-	)
+	return withTx(ctx, r.db, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(
+			ctx,
+			`SELECT id, name, price FROM products WHERE id = ?`,
+			p.ID,
+		)
 
-	if err != nil {
-		return err
-	}
+		var prev model.Product
+		if err := row.Scan(&prev.ID, &prev.Name, &prev.Price); errors.Is(err, sql.ErrNoRows) {
+			return service.ErrProductNotFound
+		} else if err != nil {
+			return err
+		}
+		if p.Name == "" {
+			p.Name = prev.Name
+		}
+		if p.Price <= 0 {
+			p.Price = prev.Price
+		}
 
-	rows, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
+		res, err := tx.ExecContext(
+			ctx,
+			`UPDATE products SET name = ?, price = ? WHERE id = ?`,
+			p.Name, p.Price, p.ID,
+		)
 
-	if rows == 0 {
-		return service.ErrProductNotFound
-	}
+		if err != nil {
+			return err
+		}
 
-	return nil
+		rows, err := res.RowsAffected()
+		if err != nil {
+			return err
+		}
+
+		if rows == 0 {
+			return service.ErrProductNotFound
+		}
+
+		return nil
+	})
 }

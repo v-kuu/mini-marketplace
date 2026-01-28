@@ -157,7 +157,7 @@ func TestProductRepository_Delete(t *testing.T) {
 	}
 
 	product, err := repo.GetByID(ctx, "2")
-	if product != nil && err == nil {
+	if err != nil || product != nil {
 		t.Fatalf("Element was not deleted")
 	}
 
@@ -189,8 +189,11 @@ func TestProductRepository_Update(t *testing.T) {
 	}
 
 	product, err := repo.GetByID(ctx, "1")
-	if err == nil && product.Name != "Tea" {
-		t.Fatalf("Database was not updated")
+	if err != nil {
+		t.Fatalf("GetByID failed: %v", err)
+	}
+	if product.Name != "Tea" {
+		t.Fatalf("Expected Tea, got %s", product.Name)
 	}
 
 	err = repo.Update(ctx, model.Product{ID: "", Name: "", Price: 0})

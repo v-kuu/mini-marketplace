@@ -104,14 +104,6 @@ func (s *ProductService) UpdateProduct(ctx context.Context, id string, p model.P
 	if p.ID != "" && p.ID != id {
 		return ErrIDMismatch
 	}
-
-	existing, err := s.repo.GetByID(ctx, id)
-	if err != nil {
-		return err
-	}
-	if existing == nil {
-		return ErrProductNotFound
-	}
 	
 	p.ID = id
 	return s.repo.Update(ctx, p)
@@ -127,15 +119,8 @@ func (s *ProductService) PatchProduct(ctx context.Context, id string, patch Prod
 	if id == "" {
 		return ErrInvalidProduct
 	}
-
-	existing, err := s.repo.GetByID(ctx, id)
-	if err != nil {
-		return err
-	}
-	if existing == nil {
-		return ErrProductNotFound
-	}
-
+	
+	existing := model.Product{ID: id}
 	if patch.Name != nil {
 		if *patch.Name == "" {
 			return ErrInvalidProduct
@@ -150,5 +135,5 @@ func (s *ProductService) PatchProduct(ctx context.Context, id string, patch Prod
 		existing.Price = *patch.Price
 	}
 
-	return s.repo.Update(ctx, *existing)
+	return s.repo.Update(ctx, existing)
 }
