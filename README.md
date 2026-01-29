@@ -18,6 +18,8 @@ The project intentionally focuses on architecture, testability, and correctness 
 ```
 cmd/server          Application entrypoint and wiring
 internal/api        HTTP handlers (transport layer)
+internal/metrics    Prometheus metrics
+internal/middleware Middleware for enabling prometheus on handlers
 internal/service    Business logic
 internal/repository
   └── sqlite        SQLite implementation
@@ -39,6 +41,9 @@ internal/model      Domain models
 
 ### Transactions
 All write operations are executed within database transactions to ensure atomicity and consistency, even for multi-step operations such as update and delete
+
+### Observability
+The service exposes Prometheus-compatible metrics at ```/metrics```, including request counts, latency histograms, in-flight requests and Go runtime metrics.
 
 ## Testing
 - Unit tests (table-driven)
