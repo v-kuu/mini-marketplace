@@ -1,7 +1,7 @@
 build:
 	go build ./cmd/server
 
-run:
+run: build
 	./server
 
 up:

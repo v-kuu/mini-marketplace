@@ -11,7 +11,7 @@ The project intentionally focuses on architecture, testability, and correctness 
 - Interface-driven design and dependency injection
 - Explicit error handling and context propagation
 - Real persistence using SQLite (database/sql)
-- Multiple layers of automated testing (unit, handler, integration)
+- Multiple layers of automated testing (unit, handler, integration, loadtesting)
 - Production-style repository and service boundaries
 
 ## Architechture
@@ -50,10 +50,11 @@ The service exposes Prometheus-compatible metrics at ```/metrics```, including r
 - HTTP handler tests (```httptest```)
 - Integration tests with in-memory SQLite
 - Error-path and cancellation coverage
+- Load testing with containers
 
 ## Running the project
 ```bash
-go run ./cmd/server
+make run
 ```
 Service starts on:
 ```
@@ -64,6 +65,8 @@ For example, running the following command returns the products in the database:
 curl http://localhost:8080/products
 ```
 
+
+
 ## Running Tests
 ```bash
 go test ./...
@@ -72,6 +75,12 @@ With race detector
 ```bash
 go test -race ./...
 ```
+
+You can also load up a container environment with limited resources and Locust for load testing
+```bash
+make up
+```
+You can then open ```http://localhost:8089``` for Locust interface and ```http://localhost:3000``` for Grafana dashboards. Login with ```admin``` ```admin```
 
 ## Why This Project
 This repository exists to show how a small Go service can be structured in a realistic, production-ready way, even at a limited scope.
