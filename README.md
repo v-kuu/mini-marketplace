@@ -11,7 +11,7 @@ The project intentionally focuses on architecture, testability, and correctness 
 - Interface-driven design and dependency injection
 - Explicit error handling and context propagation
 - Real persistence using SQLite (database/sql)
-- Multiple layers of automated testing (unit, handler, integration, loadtesting)
+- Multiple layers of automated testing (unit, handler, integration, load)
 - Production-style repository and service boundaries
 
 ## Architechture

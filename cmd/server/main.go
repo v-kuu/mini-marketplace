@@ -13,11 +13,11 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"github.com/v-kuu/mini-marketplace/internal/api"
 	"github.com/v-kuu/mini-marketplace/internal/service"
 	"github.com/v-kuu/mini-marketplace/internal/repository/sqlite"
 	"github.com/v-kuu/mini-marketplace/internal/metrics"
-	"github.com/v-kuu/mini-marketplace/internal/middleware"
+	"github.com/v-kuu/mini-marketplace/internal/http/api"
+	"github.com/v-kuu/mini-marketplace/internal/http/middleware"
 )
 
 func main() {

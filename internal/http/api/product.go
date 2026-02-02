@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"context"
 	"strings"
+	"log"
 
 	"github.com/v-kuu/mini-marketplace/internal/model"
 	"github.com/v-kuu/mini-marketplace/internal/service"
@@ -34,7 +35,7 @@ func (h *ProductHandler) Products(w http.ResponseWriter, r *http.Request) {
 		case http.MethodPost:
 			h.createProduct(w, r)
 		default:
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			writeJSONError(w, "method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
@@ -42,7 +43,8 @@ func (h *ProductHandler) listProducts(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	products, err := h.service.ListProducts(ctx)
 	if err != nil {
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		log.Printf("ListProducts: %v", err)
+		writeJSONError(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
@@ -54,7 +56,7 @@ func (h *ProductHandler) createProduct(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var p model.Product
 	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
-		http.Error(w, "invalid json", http.StatusBadRequest)
+		writeJSONError(w, "invalid json", http.StatusBadRequest)
 		return
 	}
 
@@ -62,16 +64,19 @@ func (h *ProductHandler) createProduct(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err {
 			case service.ErrInvalidProduct:
-				http.Error(w, err.Error(), http.StatusBadRequest)
+				writeJSONError(w, err.Error(), http.StatusBadRequest)
 			case service.ErrProductAlreadyExists:
-				http.Error(w, err.Error(), http.StatusConflict)
+				writeJSONError(w, err.Error(), http.StatusConflict)
 			default:
-				http.Error(w, "internal error", http.StatusInternalServerError)
+				log.Printf("CreateProduct: %v", err)
+				writeJSONError(w, "internal error", http.StatusInternalServerError)
 		}
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(p)
 }
 
 func (h *ProductHandler) ProductByID(w http.ResponseWriter, r *http.Request) {
@@ -87,7 +92,7 @@ func (h *ProductHandler) ProductByID(w http.ResponseWriter, r *http.Request) {
 		case http.MethodDelete:
 			h.deleteProduct(w, r, id)
 		default:
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			writeJSONError(w, "method not allowed", http.StatusMethodNotAllowed)
 	}
 
 }
@@ -97,7 +102,8 @@ func (h *ProductHandler) getProduct(w http.ResponseWriter, r *http.Request, id s
 
 	product, err := h.service.GetProduct(ctx, id)
 	if err != nil {
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		log.Printf("GetProduct: %v", err)
+		writeJSONError(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
@@ -106,7 +112,7 @@ func (h *ProductHandler) getProduct(w http.ResponseWriter, r *http.Request, id s
 		return
 	}
 
-	w.Header().Set("Content-type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(product)
 }
 
@@ -115,21 +121,24 @@ func (h *ProductHandler) updateProduct(w http.ResponseWriter, r *http.Request, i
 
 	var p model.Product
 	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
-		http.Error(w, "invalid json", http.StatusBadRequest)
+		writeJSONError(w, "invalid json", http.StatusBadRequest)
+		return
 	}
 
 	err := h.service.UpdateProduct(ctx, id, p)
 	if err != nil {
 		switch err {
 		case service.ErrInvalidProduct:
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			writeJSONError(w, err.Error(), http.StatusBadRequest)
 		case service.ErrIDMismatch:
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			writeJSONError(w, err.Error(), http.StatusBadRequest)
 		case service.ErrProductNotFound:
-			http.Error(w, err.Error(), http.StatusNotFound)
+			writeJSONError(w, err.Error(), http.StatusNotFound)
 		default:
-			http.Error(w, "internal error", http.StatusInternalServerError)
+			log.Printf("UpdateProduct: %v", err)
+			writeJSONError(w, "internal error", http.StatusInternalServerError)
 		}
+		return
 	}
 
 	updated := p
@@ -145,7 +154,7 @@ func (h *ProductHandler) patchProduct(w http.ResponseWriter, r *http.Request, id
 
 	var patch service.ProductPatch
 	if err := json.NewDecoder(r.Body).Decode(&patch); err != nil {
-		http.Error(w, "invalid json", http.StatusBadRequest)
+		writeJSONError(w, "invalid json", http.StatusBadRequest)
 		return
 	}
 
@@ -153,18 +162,20 @@ func (h *ProductHandler) patchProduct(w http.ResponseWriter, r *http.Request, id
 	if err != nil {
 		switch err {
 			case service.ErrInvalidProduct:
-				http.Error(w, err.Error(), http.StatusBadRequest)
+				writeJSONError(w, err.Error(), http.StatusBadRequest)
 			case service.ErrProductNotFound:
-				http.Error(w, err.Error(), http.StatusNotFound)
+				writeJSONError(w, err.Error(), http.StatusNotFound)
 			default:
-				http.Error(w, "internal error", http.StatusInternalServerError)
+				log.Printf("PatchProduct: %v", err)
+				writeJSONError(w, "internal error", http.StatusInternalServerError)
 		}
 		return
 	}
 
 	updated, err := h.service.GetProduct(ctx, id)
 	if err != nil {
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		writeJSONError(w, "internal error", http.StatusInternalServerError)
+		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -178,14 +189,21 @@ func (h *ProductHandler) deleteProduct(w http.ResponseWriter, r *http.Request, i
 	if err != nil {
 		switch err {
 			case service.ErrInvalidProduct:
-				http.Error(w, err.Error(), http.StatusBadRequest)
+				writeJSONError(w, err.Error(), http.StatusBadRequest)
 			case service.ErrProductNotFound:
-				http.Error(w, err.Error(), http.StatusNotFound)
+				writeJSONError(w, err.Error(), http.StatusNotFound)
 			default:
-				http.Error(w, "internal error", http.StatusInternalServerError)
+				log.Printf("DeleteProduct: %v", err)
+				writeJSONError(w, "internal error", http.StatusInternalServerError)
 		}
 		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func writeJSONError(w http.ResponseWriter, message string, statusCode int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(ErrorResponse{message})
 }
