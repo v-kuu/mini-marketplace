@@ -14,15 +14,15 @@ import (
 	"github.com/v-kuu/mini-marketplace/internal/http/middleware"
 )
 
-func AddRoutes() *http.ServeMux {
+func AddRoutes() (*http.ServeMux, error) {
 	metrics.Register()
 
 	db, err := sql.Open("sqlite3", "file:products.db?_foreign_keys=on")
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	if err := db.Ping(); err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	mux := http.NewServeMux()
@@ -37,5 +37,5 @@ func AddRoutes() *http.ServeMux {
 	mux.HandleFunc("/health", HealthHandler)
 	mux.Handle("/metrics", promhttp.Handler())
 
-	return mux
+	return mux, nil
 }

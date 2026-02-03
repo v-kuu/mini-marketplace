@@ -13,7 +13,10 @@ import (
 )
 
 func main() {
-	mux := api.AddRoutes()
+	mux, err := api.AddRoutes()
+	if err != nil {
+		log.Fatal(err)
+	}
 	server := &http.Server{
 		Addr: ":8080",
 		Handler: mux,
