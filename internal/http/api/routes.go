@@ -3,7 +3,6 @@ package api
 import (
 	"database/sql"
 	"net/http"
-	"log"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
