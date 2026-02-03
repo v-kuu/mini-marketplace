@@ -6,6 +6,8 @@ import (
 	"context"
 	"strings"
 	"log"
+	"time"
+	"errors"
 
 	"github.com/v-kuu/mini-marketplace/internal/model"
 	"github.com/v-kuu/mini-marketplace/internal/service"
@@ -35,16 +37,22 @@ func (h *ProductHandler) Products(w http.ResponseWriter, r *http.Request) {
 		case http.MethodPost:
 			h.createProduct(w, r)
 		default:
-			writeJSONError(w, "method not allowed", http.StatusMethodNotAllowed)
+			writeJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
 func (h *ProductHandler) listProducts(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx, cancel := context.WithTimeout(r.Context(), 5 * time.Second)
+	defer cancel()
+
 	products, err := h.service.ListProducts(ctx)
 	if err != nil {
-		log.Printf("ListProducts: %v", err)
-		writeJSONError(w, "internal error", http.StatusInternalServerError)
+		if errors.Is(err, context.DeadlineExceeded) {
+			writeJSONError(w, "Request timeout", http.StatusRequestTimeout)
+		} else {
+			log.Printf("ListProducts: %v", err)
+			writeJSONError(w, "Internal error", http.StatusInternalServerError)
+		}
 		return
 	}
 
@@ -53,10 +61,12 @@ func (h *ProductHandler) listProducts(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ProductHandler) createProduct(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx, cancel := context.WithTimeout(r.Context(), 5 * time.Second)
+	defer cancel()
+
 	var p model.Product
 	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
-		writeJSONError(w, "invalid json", http.StatusBadRequest)
+		writeJSONError(w, "Invalid json", http.StatusBadRequest)
 		return
 	}
 
@@ -67,9 +77,11 @@ func (h *ProductHandler) createProduct(w http.ResponseWriter, r *http.Request) {
 				writeJSONError(w, err.Error(), http.StatusBadRequest)
 			case service.ErrProductAlreadyExists:
 				writeJSONError(w, err.Error(), http.StatusConflict)
+			case context.DeadlineExceeded:
+				writeJSONError(w, "Request timeout", http.StatusRequestTimeout)
 			default:
 				log.Printf("CreateProduct: %v", err)
-				writeJSONError(w, "internal error", http.StatusInternalServerError)
+				writeJSONError(w, "Internal error", http.StatusInternalServerError)
 		}
 		return
 	}
@@ -92,18 +104,23 @@ func (h *ProductHandler) ProductByID(w http.ResponseWriter, r *http.Request) {
 		case http.MethodDelete:
 			h.deleteProduct(w, r, id)
 		default:
-			writeJSONError(w, "method not allowed", http.StatusMethodNotAllowed)
+			writeJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 
 }
 
 func (h *ProductHandler) getProduct(w http.ResponseWriter, r *http.Request, id string) {
-	ctx := r.Context()
+	ctx, cancel := context.WithTimeout(r.Context(), 5 * time.Second)
+	defer cancel()
 
 	product, err := h.service.GetProduct(ctx, id)
 	if err != nil {
-		log.Printf("GetProduct: %v", err)
-		writeJSONError(w, "internal error", http.StatusInternalServerError)
+		if errors.Is(err, context.DeadlineExceeded) {
+			writeJSONError(w, "Request timeout", http.StatusRequestTimeout)
+		} else {
+			log.Printf("GetProduct: %v", err)
+			writeJSONError(w, "Internal error", http.StatusInternalServerError)
+		}
 		return
 	}
 
@@ -117,7 +134,8 @@ func (h *ProductHandler) getProduct(w http.ResponseWriter, r *http.Request, id s
 }
 
 func (h *ProductHandler) updateProduct(w http.ResponseWriter, r *http.Request, id string) {
-	ctx := r.Context()
+	ctx, cancel := context.WithTimeout(r.Context(), 5 * time.Second)
+	defer cancel()
 
 	var p model.Product
 	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
@@ -134,9 +152,11 @@ func (h *ProductHandler) updateProduct(w http.ResponseWriter, r *http.Request, i
 			writeJSONError(w, err.Error(), http.StatusBadRequest)
 		case service.ErrProductNotFound:
 			writeJSONError(w, err.Error(), http.StatusNotFound)
+		case context.DeadlineExceeded:
+			writeJSONError(w, "Request timeout", http.StatusRequestTimeout)
 		default:
 			log.Printf("UpdateProduct: %v", err)
-			writeJSONError(w, "internal error", http.StatusInternalServerError)
+			writeJSONError(w, "Internal error", http.StatusInternalServerError)
 		}
 		return
 	}
@@ -150,11 +170,12 @@ func (h *ProductHandler) updateProduct(w http.ResponseWriter, r *http.Request, i
 }
 
 func (h *ProductHandler) patchProduct(w http.ResponseWriter, r *http.Request, id string) {
-	ctx := r.Context()
+	ctx, cancel := context.WithTimeout(r.Context(), 5 * time.Second)
+	defer cancel()
 
 	var patch service.ProductPatch
 	if err := json.NewDecoder(r.Body).Decode(&patch); err != nil {
-		writeJSONError(w, "invalid json", http.StatusBadRequest)
+		writeJSONError(w, "Invalid json", http.StatusBadRequest)
 		return
 	}
 
@@ -165,16 +186,18 @@ func (h *ProductHandler) patchProduct(w http.ResponseWriter, r *http.Request, id
 				writeJSONError(w, err.Error(), http.StatusBadRequest)
 			case service.ErrProductNotFound:
 				writeJSONError(w, err.Error(), http.StatusNotFound)
+			case context.DeadlineExceeded:
+				writeJSONError(w, "Request timeout", http.StatusRequestTimeout)
 			default:
 				log.Printf("PatchProduct: %v", err)
-				writeJSONError(w, "internal error", http.StatusInternalServerError)
+				writeJSONError(w, "Internal error", http.StatusInternalServerError)
 		}
 		return
 	}
 
 	updated, err := h.service.GetProduct(ctx, id)
 	if err != nil {
-		writeJSONError(w, "internal error", http.StatusInternalServerError)
+		writeJSONError(w, "Internal error", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -183,7 +206,8 @@ func (h *ProductHandler) patchProduct(w http.ResponseWriter, r *http.Request, id
 }
 
 func (h *ProductHandler) deleteProduct(w http.ResponseWriter, r *http.Request, id string) {
-	ctx := r.Context()
+	ctx, cancel := context.WithTimeout(r.Context(), 5 * time.Second)
+	defer cancel()
 
 	err := h.service.DeleteProduct(ctx, id)
 	if err != nil {
@@ -192,9 +216,11 @@ func (h *ProductHandler) deleteProduct(w http.ResponseWriter, r *http.Request, i
 				writeJSONError(w, err.Error(), http.StatusBadRequest)
 			case service.ErrProductNotFound:
 				writeJSONError(w, err.Error(), http.StatusNotFound)
+			case context.DeadlineExceeded:
+				writeJSONError(w, "Request timeout", http.StatusRequestTimeout)
 			default:
 				log.Printf("DeleteProduct: %v", err)
-				writeJSONError(w, "internal error", http.StatusInternalServerError)
+				writeJSONError(w, "Internal error", http.StatusInternalServerError)
 		}
 		return
 	}
