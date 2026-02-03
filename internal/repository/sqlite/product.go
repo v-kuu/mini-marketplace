@@ -4,8 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
+	"golang.org/x/sync/semaphore"
 
 	"github.com/v-kuu/mini-marketplace/internal/model"
 	"github.com/v-kuu/mini-marketplace/internal/service"
@@ -13,14 +15,34 @@ import (
 
 type ProductRepository struct {
 	db *sql.DB
+	sem *semaphore.Weighted
 }
 
-func NewProductRepository(db *sql.DB) *ProductRepository {
-	return &ProductRepository{db: db}
+func OpenDB(maxOpen int64) (*sql.DB, error) {
+	db, err := sql.Open("sqlite3", "file:products.db?_foreign_keys=on")
+	if err != nil {
+		return nil, err
+	}
+	if err := db.Ping(); err != nil {
+		return nil, err
+	}
+
+	db.SetMaxOpenConns(int(maxOpen))
+	db.SetMaxIdleConns(int(maxOpen) / 2)
+	db.SetConnMaxLifetime(5 * time.Minute)
+
+	return db, nil
+}
+
+func NewProductRepository(db *sql.DB, maxConcurrent int64) *ProductRepository {
+	return &ProductRepository{
+		db: db,
+		sem: semaphore.NewWeighted(maxConcurrent),
+	}
 }
 
 func (r *ProductRepository) List(ctx context.Context) ([]model.Product, error) {
-	rows, err := r.db.QueryContext(
+	rows, err := r.query(
 		ctx,
 		`SELECT id, name, price FROM products`,
 	)
@@ -50,11 +72,14 @@ func (r *ProductRepository) List(ctx context.Context) ([]model.Product, error) {
 }
 
 func (r *ProductRepository) GetByID(ctx context.Context, id string) (*model.Product, error) {
-	row := r.db.QueryRowContext(
+	row, err := r.queryRow(
 		ctx,
 		`SELECT id, name, price FROM products WHERE id = ?`,
 		id,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	var p model.Product
 	if err := row.Scan(&p.ID, &p.Name, &p.Price); err != nil {
@@ -68,8 +93,9 @@ func (r *ProductRepository) GetByID(ctx context.Context, id string) (*model.Prod
 
 func (r *ProductRepository) Create(ctx context.Context, p model.Product) error {
 	return withTx(ctx, r.db, func(tx *sql.Tx) error {
-		_, err := tx.ExecContext(
+		_, err := r.exec(
 			ctx,
+			tx,
 			`INSERT INTO products (id, name, price) VALUES (?, ?, ?)`,
 			p.ID, p.Name, p.Price,
 		)
@@ -79,8 +105,9 @@ func (r *ProductRepository) Create(ctx context.Context, p model.Product) error {
 
 func (r *ProductRepository) Delete(ctx context.Context, id string) error {
 	return withTx(ctx, r.db, func(tx *sql.Tx) error {
-		res, err := tx.ExecContext(
+		res, err := r.exec(
 			ctx,
+			tx,
 			`DELETE FROM products WHERE id = ?`,
 			id,
 		)
@@ -122,8 +149,9 @@ func (r *ProductRepository) Update(ctx context.Context, p model.Product) error {
 			p.Price = prev.Price
 		}
 
-		res, err := tx.ExecContext(
+		res, err := r.exec(
 			ctx,
+			tx,
 			`UPDATE products SET name = ?, price = ? WHERE id = ?`,
 			p.Name, p.Price, p.ID,
 		)
@@ -143,4 +171,32 @@ func (r *ProductRepository) Update(ctx context.Context, p model.Product) error {
 
 		return nil
 	})
+}
+
+func (r *ProductRepository) query(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+	if err := r.sem.Acquire(ctx, 1); err != nil {
+		return nil, err
+	}
+	defer r.sem.Release(1)
+
+	return r.db.QueryContext(ctx, query, args...)
+}
+
+func (r *ProductRepository) exec(ctx context.Context, tx *sql.Tx, query string, args ...interface{}) (sql.Result, error) {
+	if err := r.sem.Acquire(ctx, 1); err != nil {
+		return nil, err
+	}
+	defer r.sem.Release(1)
+
+	return tx.ExecContext(ctx, query, args...)
+	
+}
+
+func (r *ProductRepository) queryRow(ctx context.Context, query string, args ...interface{}) (*sql.Row, error) {
+	if err := r.sem.Acquire(ctx, 1); err != nil {
+		return nil, err
+	}
+	defer r.sem.Release(1)
+
+	return r.db.QueryRowContext(ctx, query, args...), nil
 }

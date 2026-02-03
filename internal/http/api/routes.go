@@ -1,10 +1,8 @@
 package api
 
 import (
-	"database/sql"
 	"net/http"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/v-kuu/mini-marketplace/internal/service"
@@ -16,17 +14,15 @@ import (
 func AddRoutes() (*http.ServeMux, error) {
 	metrics.Register()
 
-	db, err := sql.Open("sqlite3", "file:products.db?_foreign_keys=on")
+	var maxOpen int64 = 100
+	db, err := sqlite.OpenDB(maxOpen)
 	if err != nil {
-		return nil, err
-	}
-	if err := db.Ping(); err != nil {
 		return nil, err
 	}
 
 	mux := http.NewServeMux()
 
-	repo := sqlite.NewProductRepository(db)
+	repo := sqlite.NewProductRepository(db, maxOpen * 2)
 	svc := service.NewProductService(repo)
 	handler := NewProductHandler(svc)
 	ProductsHandler := http.HandlerFunc(handler.Products)

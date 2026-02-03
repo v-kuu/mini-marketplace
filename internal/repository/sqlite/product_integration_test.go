@@ -4,18 +4,22 @@ import (
 	"context"
 	"database/sql"
 	"testing"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/v-kuu/mini-marketplace/internal/model"
 )
 
-func setupTestDB(t *testing.T) *sql.DB {
+func setupTestDB(t *testing.T, maxOpen int64) *sql.DB {
 	t.Helper()
 
 	db, err := sql.Open("sqlite3", ":memory:")
 	if err != nil {
 		t.Fatalf("Failed to open db: %v", err)
 	}
+	db.SetMaxOpenConns(int(maxOpen))
+	db.SetMaxIdleConns(int(maxOpen) / 2)
+	db.SetConnMaxLifetime(5 * time.Minute)
 
 	schema := `
 	CREATE TABLE products (
@@ -33,10 +37,11 @@ func setupTestDB(t *testing.T) *sql.DB {
 }
 
 func TestProductRepository_List(t *testing.T) {
-	db := setupTestDB(t)
+	var maxOpen int64 = 100
+	db := setupTestDB(t, maxOpen)
 	defer db.Close()
 
-	repo := NewProductRepository(db)
+	repo := NewProductRepository(db, maxOpen * 2)
 
 	ctx := context.Background()
 
@@ -63,10 +68,11 @@ func TestProductRepository_List(t *testing.T) {
 }
 
 func TestProductRepository_List_ContextCancelled(t *testing.T) {
-	db := setupTestDB(t)
+	var maxOpen int64 = 100
+	db := setupTestDB(t, maxOpen)
 	defer db.Close()
 
-	repo := NewProductRepository(db)
+	repo := NewProductRepository(db, maxOpen * 2)
 	
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -78,10 +84,11 @@ func TestProductRepository_List_ContextCancelled(t *testing.T) {
 }
 
 func TestProductRepository_GetByID(t *testing.T) {
-	db := setupTestDB(t)
+	var maxOpen int64 = 100
+	db := setupTestDB(t, maxOpen)
 	defer db.Close()
 
-	repo := NewProductRepository(db)
+	repo := NewProductRepository(db, maxOpen * 2)
 
 	ctx := context.Background()
 
@@ -109,10 +116,11 @@ func TestProductRepository_GetByID(t *testing.T) {
 }
 
 func TestProductRepository_Create(t *testing.T) {
-	db := setupTestDB(t)
+	var maxOpen int64 = 100
+	db := setupTestDB(t, maxOpen)
 	defer db.Close()
 
-	repo := NewProductRepository(db)
+	repo := NewProductRepository(db, maxOpen * 2)
 
 	ctx := context.Background()
 
@@ -128,10 +136,11 @@ func TestProductRepository_Create(t *testing.T) {
 }
 
 func TestProductRepository_Delete(t *testing.T) {
-	db := setupTestDB(t)
+	var maxOpen int64 = 100
+	db := setupTestDB(t, maxOpen)
 	defer db.Close()
 
-	repo := NewProductRepository(db)
+	repo := NewProductRepository(db, maxOpen * 2)
 
 	ctx := context.Background()
 
@@ -168,10 +177,11 @@ func TestProductRepository_Delete(t *testing.T) {
 }
 
 func TestProductRepository_Update(t *testing.T) {
-	db := setupTestDB(t)
+	var maxOpen int64 = 100
+	db := setupTestDB(t, maxOpen)
 	defer db.Close()
 
-	repo := NewProductRepository(db)
+	repo := NewProductRepository(db, maxOpen * 2)
 
 	ctx := context.Background()
 
