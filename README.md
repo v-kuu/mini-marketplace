@@ -17,9 +17,10 @@ The project intentionally focuses on architecture, testability, and correctness 
 ## Architechture
 ```
 cmd/server          Application entrypoint and wiring
-internal/api        HTTP handlers (transport layer)
+internal/http
+  └── api           HTTP handlers (transport layer)
+  └── middleware    Prometheus middleware
 internal/metrics    Prometheus metrics
-internal/middleware Middleware for enabling prometheus on handlers
 internal/service    Business logic
 internal/repository
   └── sqlite        SQLite implementation
