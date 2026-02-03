@@ -32,19 +32,30 @@ internal/model      Domain models
 - Persistence is isolated behind repositories
 - ```context.Context``` flows from HTTP → service → database
 
+### API Design
+
+The API follows REST principles:
+- Resource-oriented URLs (`/products`, `/products/{id}`)
+- Standard HTTP methods (GET, POST, PUT, PATCH, DELETE)
+- Stateless requests
+- Consistent JSON responses
+- Clear status codes
+
 ## Implemented Features
-- ```GET /products``` HTTP endpoint
 - JSON API with proper status codes
 - SQLite-backed repository
-- Context-aware database queries
+- Context-aware database queries with timeouts
 - Dependency injection via interfaces
 - CI pipeline (Github Actions)
 
 ### Transactions
 All write operations are executed within database transactions to ensure atomicity and consistency, even for multi-step operations such as update and delete
 
+### Concurrency control
+The database layer uses a semaphore to limit concurrent access, preventing connection exhaustion and reducing errors under heavy load. The concurrency limit can be configured via the SEM_MAX environment variable.
+
 ### Observability
-The service exposes Prometheus-compatible metrics at ```/metrics```, including request counts, latency histograms, in-flight requests and Go runtime metrics.
+The service exposes Prometheus-compatible metrics at ```/metrics```, including request counts, latency histograms, in-flight requests, semaphore usage and Go runtime metrics.
 
 ## Testing
 - Unit tests (table-driven)
