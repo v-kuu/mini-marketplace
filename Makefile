@@ -2,7 +2,7 @@ build:
 	go build ./cmd/server
 
 run: build
-	SEM_MAX=100 ./server
+	SEM_MAX=10 ./server
 
 up:
 	docker compose up --build -d

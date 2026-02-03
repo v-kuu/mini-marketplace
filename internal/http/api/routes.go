@@ -16,6 +16,13 @@ import (
 func AddRoutes() (*http.ServeMux, error) {
 	metrics.Register()
 
+	db, err := sqlite.OpenDB("file:products.db?_foreign_keys=on")
+	if err != nil {
+		return nil, err
+	}
+
+	mux := http.NewServeMux()
+
 	var maxConcurrent int64
 	SEM_MAX, ok := os.LookupEnv("SEM_MAX")
 	if !ok {
@@ -27,13 +34,6 @@ func AddRoutes() (*http.ServeMux, error) {
 		}
 		maxConcurrent = int64(val);
 	}
-	db, err := sqlite.OpenDB("file:products.db?_foreign_keys=on")
-	if err != nil {
-		return nil, err
-	}
-
-	mux := http.NewServeMux()
-
 	repo := sqlite.NewProductRepository(db, maxConcurrent)
 	svc := service.NewProductService(repo)
 	handler := NewProductHandler(svc)
