@@ -11,6 +11,7 @@ import (
 
 	"github.com/v-kuu/mini-marketplace/internal/model"
 	"github.com/v-kuu/mini-marketplace/internal/service"
+	"github.com/v-kuu/mini-marketplace/internal/metrics"
 )
 
 type ProductRepository struct {
@@ -18,18 +19,14 @@ type ProductRepository struct {
 	sem *semaphore.Weighted
 }
 
-func OpenDB(maxOpen int64) (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", "file:products.db?_foreign_keys=on")
+func OpenDB(dataSourceName string) (*sql.DB, error) {
+	db, err := sql.Open("sqlite3", dataSourceName)
 	if err != nil {
 		return nil, err
 	}
 	if err := db.Ping(); err != nil {
 		return nil, err
 	}
-
-	db.SetMaxOpenConns(int(maxOpen))
-	db.SetMaxIdleConns(int(maxOpen) / 2)
-	db.SetConnMaxLifetime(5 * time.Minute)
 
 	return db, nil
 }
@@ -173,30 +170,52 @@ func (r *ProductRepository) Update(ctx context.Context, p model.Product) error {
 	})
 }
 
-func (r *ProductRepository) query(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+func (r *ProductRepository) query(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
+	start := time.Now()
+
 	if err := r.sem.Acquire(ctx, 1); err != nil {
 		return nil, err
 	}
-	defer r.sem.Release(1)
+
+	metrics.DbSemaphoreWaitDuration.Observe(time.Since(start).Seconds())
+	metrics.DbSemaphoreInUse.Inc()
+	defer func () {
+		r.sem.Release(1)
+		metrics.DbSemaphoreInUse.Dec()
+	}()
 
 	return r.db.QueryContext(ctx, query, args...)
 }
 
-func (r *ProductRepository) exec(ctx context.Context, tx *sql.Tx, query string, args ...interface{}) (sql.Result, error) {
+func (r *ProductRepository) exec(ctx context.Context, tx *sql.Tx, query string, args ...any) (sql.Result, error) {
+	start := time.Now()
 	if err := r.sem.Acquire(ctx, 1); err != nil {
 		return nil, err
 	}
-	defer r.sem.Release(1)
+
+	metrics.DbSemaphoreWaitDuration.Observe(time.Since(start).Seconds())
+	metrics.DbSemaphoreInUse.Inc()
+	defer func () {
+		r.sem.Release(1)
+		metrics.DbSemaphoreInUse.Dec()
+	}()
 
 	return tx.ExecContext(ctx, query, args...)
 	
 }
 
-func (r *ProductRepository) queryRow(ctx context.Context, query string, args ...interface{}) (*sql.Row, error) {
+func (r *ProductRepository) queryRow(ctx context.Context, query string, args ...any) (*sql.Row, error) {
+	start := time.Now()
+
 	if err := r.sem.Acquire(ctx, 1); err != nil {
 		return nil, err
 	}
-	defer r.sem.Release(1)
+	metrics.DbSemaphoreWaitDuration.Observe(time.Since(start).Seconds())
+	metrics.DbSemaphoreInUse.Inc()
+	defer func () {
+		r.sem.Release(1)
+		metrics.DbSemaphoreInUse.Dec()
+	}()
 
 	return r.db.QueryRowContext(ctx, query, args...), nil
 }

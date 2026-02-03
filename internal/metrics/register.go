@@ -7,5 +7,7 @@ func Register() {
 		HttpRequestsTotal,
 		HttpRequestDuration,
 		HttpInFlight,
+		DbSemaphoreWaitDuration,
+		DbSemaphoreInUse,
 	)
 }

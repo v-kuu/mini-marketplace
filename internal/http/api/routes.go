@@ -2,6 +2,8 @@ package api
 
 import (
 	"net/http"
+	"os"
+	"strconv"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
@@ -14,15 +16,25 @@ import (
 func AddRoutes() (*http.ServeMux, error) {
 	metrics.Register()
 
-	var maxOpen int64 = 100
-	db, err := sqlite.OpenDB(maxOpen)
+	var maxConcurrent int64
+	SEM_MAX, ok := os.LookupEnv("SEM_MAX")
+	if !ok {
+		maxConcurrent = 100
+	} else {
+		val, err := strconv.Atoi(SEM_MAX)
+		if err != nil {
+			return nil, err
+		}
+		maxConcurrent = int64(val);
+	}
+	db, err := sqlite.OpenDB("file:products.db?_foreign_keys=on")
 	if err != nil {
 		return nil, err
 	}
 
 	mux := http.NewServeMux()
 
-	repo := sqlite.NewProductRepository(db, maxOpen * 2)
+	repo := sqlite.NewProductRepository(db, maxConcurrent)
 	svc := service.NewProductService(repo)
 	handler := NewProductHandler(svc)
 	ProductsHandler := http.HandlerFunc(handler.Products)
