@@ -11,12 +11,14 @@
 
 	<ul id="products"></ul>
 
-	<h2>Add product</h2>
+	<h2>Actions</h2>
 	<input id="id" placeholder="ID" />
 	<input id="name" placeholder="Name" />
 	<input id="price" type="number" placeholder="Price" />
 	<button onclick="createProduct()">Create</button>
 	<button onclick="deleteProduct()">Delete</button>
+	<button onclick="putProduct()">Put</button>
+	<button onclick="patchProduct()">Patch</button>
 
 	<script>
 		const API = "http://localhost:8080";
@@ -50,6 +52,36 @@
 			const id = document.getElementById("id").value;
 			await fetch(`${API}/products/${id}`, {
 				method: "DELETE",
+			});
+			loadProducts();
+		}
+
+		async function putProduct() {
+			const id = document.getElementById("id").value;
+			await fetch(`${API}/products/${id}`, {
+				method: "PUT",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					id: document.getElementById("id").value,
+					name: document.getElementById("name").value,
+					price: Number(document.getElementById("price").value),
+				}),
+			});
+			loadProducts();
+		}
+
+		async function patchProduct() {
+			const id = document.getElementById("id").value;
+			const body = {};
+
+			const name = document.getElementById("name").value;
+			const price = document.getElementById("price").value;
+			if (name !== "") body.name = name;
+			if (price !== "") body.price = Number(price);
+			await fetch(`${API}/products/${id}`, {
+				method: "PATCH",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(body),
 			});
 			loadProducts();
 		}
