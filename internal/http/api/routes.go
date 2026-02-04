@@ -44,5 +44,8 @@ func AddRoutes() (*http.ServeMux, error) {
 	mux.HandleFunc("/health", HealthHandler)
 	mux.Handle("/metrics", promhttp.Handler())
 
+	fs := http.FileServer(http.Dir("./web"))
+	mux.Handle("/", fs)
+
 	return mux, nil
 }

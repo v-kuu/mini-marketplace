@@ -68,16 +68,10 @@ The service exposes Prometheus-compatible metrics at ```/metrics```, including r
 ```bash
 make run
 ```
-Service starts on:
+You can open a demo UI in your browser:
 ```
 http://localhost:8080/
 ```
-For example, running the following command returns the products in the database:
-```bash
-curl http://localhost:8080/products
-```
-
-
 
 ## Running Tests
 ```bash

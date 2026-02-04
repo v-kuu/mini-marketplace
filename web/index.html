@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8" />
+	<title>mini-marketplace API demo</title>
+</head>
+<body>
+	<h1>Products</h1>
+
+	<button onclick="loadProducts()">Load products</button>
+
+	<ul id="products"></ul>
+
+	<h2>Add product</h2>
+	<input id="id" placeholder="ID" />
+	<input id="name" placeholder="Name" />
+	<input id="price" type="number" placeholder="Price" />
+	<button onclick="createProduct()">Create</button>
+
+	<script>
+		const API = "http://localhost:8080";
+
+		async function loadProducts() {
+			const res = await fetch(`${API}/products`);
+			const body = await res.json();
+			const list = document.getElementById("products");
+			list.innerHTML = "";
+			body.forEach(p => {
+				const li = document.createElement("li");
+				li.innerText = `${p.id} - ${p.name} (${p.price})`;
+				list.appendChild(li);
+			});
+		}
+
+		async function createProduct() {
+			await fetch(`${API}/products`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					id: document.getElementById("id").value,
+					name: document.getElementById("name").value,
+					price: Number(document.getElementById("price").value),
+				}),
+			});
+			loadProducts();
+		}
+	</script>
+</body>
+</html>
