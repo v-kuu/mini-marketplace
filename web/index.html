@@ -16,6 +16,7 @@
 	<input id="name" placeholder="Name" />
 	<input id="price" type="number" placeholder="Price" />
 	<button onclick="createProduct()">Create</button>
+	<button onclick="deleteProduct()">Delete</button>
 
 	<script>
 		const API = "http://localhost:8080";
@@ -41,6 +42,14 @@
 					name: document.getElementById("name").value,
 					price: Number(document.getElementById("price").value),
 				}),
+			});
+			loadProducts();
+		}
+
+		async function deleteProduct() {
+			const id = document.getElementById("id").value;
+			await fetch(`${API}/products/${id}`, {
+				method: "DELETE",
 			});
 			loadProducts();
 		}
