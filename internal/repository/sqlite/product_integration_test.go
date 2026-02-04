@@ -35,7 +35,11 @@ func setupTestDB(t *testing.T) *sql.DB {
 func TestProductRepository_List(t *testing.T) {
 	var maxConcurrent int64 = 100
 	db := setupTestDB(t)
-	defer db.Close()
+	defer func () {
+		if err := db.Close(); err != nil {
+			t.Fatalf("Failed to close db: %v", err)
+		}
+	}()
 
 	repo := NewProductRepository(db, maxConcurrent)
 
@@ -66,7 +70,11 @@ func TestProductRepository_List(t *testing.T) {
 func TestProductRepository_List_ContextCancelled(t *testing.T) {
 	var maxConcurrent int64 = 100
 	db := setupTestDB(t)
-	defer db.Close()
+	defer func () {
+		if err := db.Close(); err != nil {
+			t.Fatalf("Failed to close db: %v", err)
+		}
+	}()
 
 	repo := NewProductRepository(db, maxConcurrent * 2)
 	
@@ -82,7 +90,11 @@ func TestProductRepository_List_ContextCancelled(t *testing.T) {
 func TestProductRepository_GetByID(t *testing.T) {
 	var maxConcurrent int64 = 100
 	db := setupTestDB(t)
-	defer db.Close()
+	defer func () {
+		if err := db.Close(); err != nil {
+			t.Fatalf("Failed to close db: %v", err)
+		}
+	}()
 
 	repo := NewProductRepository(db, maxConcurrent * 2)
 
@@ -114,7 +126,11 @@ func TestProductRepository_GetByID(t *testing.T) {
 func TestProductRepository_Create(t *testing.T) {
 	var maxConcurrent int64 = 100
 	db := setupTestDB(t)
-	defer db.Close()
+	defer func () {
+		if err := db.Close(); err != nil {
+			t.Fatalf("Failed to close db: %v", err)
+		}
+	}()
 
 	repo := NewProductRepository(db, maxConcurrent * 2)
 
@@ -126,15 +142,21 @@ func TestProductRepository_Create(t *testing.T) {
 	}
 
 	product, err := repo.GetByID(ctx, "1")
-	if product.Name != "Coffee" {
+	if err == nil && product.Name != "Coffee" {
 		t.Fatalf("Expected Coffee, got %s", product.Name)
+	} else if err != nil {
+		t.Fatalf("GetByID failed: %v", err)
 	}
 }
 
 func TestProductRepository_Delete(t *testing.T) {
 	var maxConcurrent int64 = 100
 	db := setupTestDB(t)
-	defer db.Close()
+	defer func () {
+		if err := db.Close(); err != nil {
+			t.Fatalf("Failed to close db: %v", err)
+		}
+	}()
 
 	repo := NewProductRepository(db, maxConcurrent * 2)
 
@@ -175,7 +197,11 @@ func TestProductRepository_Delete(t *testing.T) {
 func TestProductRepository_Update(t *testing.T) {
 	var maxConcurrent int64 = 100
 	db := setupTestDB(t)
-	defer db.Close()
+	defer func () {
+		if err := db.Close(); err != nil {
+			t.Fatalf("Failed to close db: %v", err)
+		}
+	}()
 
 	repo := NewProductRepository(db, maxConcurrent * 2)
 

@@ -150,7 +150,11 @@ func TestProductHandler_List(t *testing.T) {
 			handler.Products(rec, req)
 
 			res := rec.Result()
-			defer res.Body.Close()
+			defer func () {
+				if err := res.Body.Close(); err != nil {
+					t.Fatalf("Failed to close response body")
+				}
+			}()
 
 			if res.StatusCode != tt.wantStatus {
 				t.Fatalf("Expected status %d, got %d", tt.wantStatus, res.StatusCode)
@@ -217,7 +221,11 @@ func TestProductHandler_Get(t *testing.T) {
 			handler.ProductByID(rec, req)
 
 			res := rec.Result()
-			defer res.Body.Close()
+			defer func () {
+				if err := res.Body.Close(); err != nil {
+					t.Fatalf("Failed to close response body: %v", err)
+				}
+			}()
 
 			if res.StatusCode != tt.wantStatus {
 				t.Fatalf("Expected status %d, got %d", tt.wantStatus, res.StatusCode)
@@ -292,7 +300,11 @@ func TestProductHandler_Create(t *testing.T) {
 			handler.Products(rec, req)
 
 			res := rec.Result()
-			defer res.Body.Close()
+			defer func () {
+				if err := res.Body.Close(); err != nil {
+					t.Fatalf("Failed to close response body: %v", err)
+				}
+			}()
 
 			if res.StatusCode != tt.wantStatus {
 				t.Fatalf("Expected status %d, got %d", tt.wantStatus, res.StatusCode)
@@ -366,7 +378,11 @@ func TestProductHandler_Delete(t *testing.T) {
 			handler.ProductByID(rec, req)
 
 			res := rec.Result()
-			defer res.Body.Close()
+			defer func () {
+				if err := res.Body.Close(); err != nil {
+					t.Fatalf("Failed to close response body: %v", err)
+				}
+			}()
 
 			if res.StatusCode != tt.wantStatus {
 				t.Fatalf("Expected status %d, got %d", tt.wantStatus, res.StatusCode)
@@ -463,7 +479,11 @@ func TestProductHandler_Update(t *testing.T) {
 			handler.ProductByID(rec, req)
 
 			res := rec.Result()
-			defer res.Body.Close()
+			defer func () {
+				if err := res.Body.Close(); err != nil {
+					t.Fatalf("Failed to close response body: %v", err)
+				}
+			}()
 
 			if res.StatusCode != tt.wantStatus {
 				t.Fatalf("Expected status %d, got %d", tt.wantStatus, res.StatusCode)
@@ -549,7 +569,11 @@ func TestProductHandler_Patch(t *testing.T) {
 			handler.ProductByID(rec, req)
 
 			res := rec.Result()
-			defer res.Body.Close()
+			defer func () {
+				if err := res.Body.Close(); err != nil {
+					t.Fatalf("Failed to close response body: %v", err)
+				}
+			}()
 
 			if res.StatusCode != tt.wantStatus {
 				t.Fatalf("Expected status %d, got %d", tt.wantStatus, res.StatusCode)

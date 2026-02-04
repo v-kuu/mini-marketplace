@@ -57,7 +57,9 @@ func (h *ProductHandler) listProducts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(products)
+	if err := json.NewEncoder(w).Encode(products); err != nil {
+		log.Printf("json encoding error: %v", err)
+	}
 }
 
 func (h *ProductHandler) createProduct(w http.ResponseWriter, r *http.Request) {
@@ -88,7 +90,9 @@ func (h *ProductHandler) createProduct(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(p)
+	if err := json.NewEncoder(w).Encode(p); err != nil {
+		log.Printf("json encoding error: %v", err)
+	}
 }
 
 func (h *ProductHandler) ProductByID(w http.ResponseWriter, r *http.Request) {
@@ -130,7 +134,9 @@ func (h *ProductHandler) getProduct(w http.ResponseWriter, r *http.Request, id s
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(product)
+	if err := json.NewEncoder(w).Encode(product); err != nil {
+		log.Printf("json encoding error: %v", err)
+	}
 }
 
 func (h *ProductHandler) updateProduct(w http.ResponseWriter, r *http.Request, id string) {
@@ -166,7 +172,9 @@ func (h *ProductHandler) updateProduct(w http.ResponseWriter, r *http.Request, i
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(updated)
+	if err := json.NewEncoder(w).Encode(updated); err != nil {
+		log.Printf("json encoding error: %v", err)
+	}
 }
 
 func (h *ProductHandler) patchProduct(w http.ResponseWriter, r *http.Request, id string) {
@@ -202,7 +210,9 @@ func (h *ProductHandler) patchProduct(w http.ResponseWriter, r *http.Request, id
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(updated)
+	if err := json.NewEncoder(w).Encode(updated); err != nil {
+		log.Printf("json encoding error: %v", err)
+	}
 }
 
 func (h *ProductHandler) deleteProduct(w http.ResponseWriter, r *http.Request, id string) {
@@ -231,5 +241,7 @@ func (h *ProductHandler) deleteProduct(w http.ResponseWriter, r *http.Request, i
 func writeJSONError(w http.ResponseWriter, message string, statusCode int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(ErrorResponse{message})
+	if err := json.NewEncoder(w).Encode(ErrorResponse{message}); err != nil {
+		log.Printf("json encoding error: %v", err)
+	}
 }

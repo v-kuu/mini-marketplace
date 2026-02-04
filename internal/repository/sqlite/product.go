@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"time"
+	"log"
 
 	_ "github.com/mattn/go-sqlite3"
 	"golang.org/x/sync/semaphore"
@@ -46,7 +47,11 @@ func (r *ProductRepository) List(ctx context.Context) ([]model.Product, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func () {
+		if err := rows.Close(); err != nil {
+			log.Printf("Failed to close rows: %v", err)
+		}
+	}()
 
 	var products []model.Product
 
