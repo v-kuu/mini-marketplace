@@ -37,12 +37,6 @@ func (f *fakeProductRepo) Create(ctx context.Context, p model.Product) error {
 		return ErrInvalidProduct
 	}
 
-	for _, product := range f.products {
-		if product.ID == p.ID {
-			return ErrProductAlreadyExists
-		}
-	}
-
 	f.products = append(f.products, p)
 	return nil
 }
@@ -198,14 +192,16 @@ func TestProductService_Create(t *testing.T) {
 
 	tests := []struct {
 		name string
-		p model.Product
+		pName string
+		pPrice int64
 		repo *fakeProductRepo
 		wantLen int
 		wantErr bool
 	}{
 		{
 			name: "Success",
-			p: model.Product{ID: "3", Name: "Tea", Price: 499},
+			pName: "Tea",
+			pPrice: 499,
 			repo: &fakeProductRepo{
 				products: []model.Product{
 					{ID: "1", Name: "Coffee", Price: 499},
@@ -215,37 +211,13 @@ func TestProductService_Create(t *testing.T) {
 			wantLen: 3,
 			wantErr: false,
 		},
-		{
-			name: "Invalid Request",
-			p: model.Product{ID: "", Name: "", Price: 0},
-			repo: &fakeProductRepo{
-				products: []model.Product{
-					{ID: "1", Name: "Coffee", Price: 499},
-					{ID: "2", Name: "Sandwich", Price: 899},
-				},
-			},
-			wantLen: 2,
-			wantErr: true,
-		},
-		{
-			name: "Already exists",
-			p: model.Product{ID: "1", Name: "Coffee", Price: 499},
-			repo: &fakeProductRepo{
-				products: []model.Product{
-					{ID: "1", Name: "Coffee", Price: 499},
-					{ID: "2", Name: "Sandwich", Price: 899},
-				},
-			},
-			wantLen: 2,
-			wantErr: true,
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			svc := NewProductService(tt.repo)
-			err := svc.CreateProduct(context.Background(), tt.p)
+			_, err := svc.CreateProduct(context.Background(), tt.pName, tt.pPrice)
 
 			if !tt.wantErr && tt.wantLen != len(tt.repo.products) {
 				t.Fatalf("expected %d products, got %d", tt.wantLen, len(tt.repo.products))
@@ -331,7 +303,8 @@ func TestProductService_Update(t *testing.T) {
 	tests := []struct {
 		name string
 		id string
-		p ProductUpdate
+		pName string
+		pPrice int64
 		repo *fakeProductRepo
 		wantLen int
 		wantErr bool
@@ -339,7 +312,8 @@ func TestProductService_Update(t *testing.T) {
 		{
 			name: "Success",
 			id: "1",
-			p: ProductUpdate{Name: "Tea", Price: 599},
+			pName: "Tea",
+			pPrice: 599,
 			repo: &fakeProductRepo{
 				products: []model.Product{
 					{ID: "1", Name: "Coffee", Price: 499},
@@ -352,7 +326,8 @@ func TestProductService_Update(t *testing.T) {
 		{
 			name: "Not found",
 			id: "3",
-			p: ProductUpdate{Name: "Tea", Price: 599},
+			pName: "Tea", 
+			pPrice: 599,
 			repo: &fakeProductRepo{
 				products: []model.Product{
 					{ID: "1", Name: "Coffee", Price: 499},
@@ -365,7 +340,8 @@ func TestProductService_Update(t *testing.T) {
 		{
 			name: "Invalid id",
 			id: "",
-			p: ProductUpdate{Name: "", Price: 0},
+			pName: "Tea", 
+			pPrice: 499,
 			repo: &fakeProductRepo{
 				products: []model.Product{
 					{ID: "1", Name: "Coffee", Price: 499},
@@ -381,7 +357,7 @@ func TestProductService_Update(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			svc := NewProductService(tt.repo)
-			err := svc.UpdateProduct(context.Background(), tt.id, tt.p)
+			err := svc.UpdateProduct(context.Background(), tt.id, tt.pName, tt.pPrice)
 
 			if tt.wantLen != len(tt.repo.products) {
 				t.Fatalf("expected %d elements, got %d", tt.wantLen, len(tt.repo.products))
@@ -409,11 +385,11 @@ func TestProductService_Update(t *testing.T) {
 func TestProductService_Patch(t *testing.T) {
 
 	newName := "Tea"
-	invalidName := ""
 	tests := []struct {
 		name string
 		id string
-		patch ProductPatch
+		pName *string
+		pPrice *int64
 		repo *fakeProductRepo
 		wantLen int
 		wantErr bool
@@ -422,7 +398,7 @@ func TestProductService_Patch(t *testing.T) {
 		{
 			name: "Success",
 			id: "1",
-			patch: ProductPatch{Name: &newName},
+			pName: &newName,
 			repo: &fakeProductRepo{
 				products: []model.Product{
 					{ID: "1", Name: "Coffee", Price: 499},
@@ -436,7 +412,7 @@ func TestProductService_Patch(t *testing.T) {
 		{
 			name: "Not found",
 			id: "3",
-			patch: ProductPatch{Name: &newName},
+			pName: &newName,
 			repo: &fakeProductRepo{
 				products: []model.Product{
 					{ID: "1", Name: "Coffee", Price: 499},
@@ -450,7 +426,7 @@ func TestProductService_Patch(t *testing.T) {
 		{
 			name: "Invalid id",
 			id: "",
-			patch: ProductPatch{Name: &newName},
+			pName: &newName,
 			repo: &fakeProductRepo{
 				products: []model.Product{
 					{ID: "1", Name: "Coffee", Price: 499},
@@ -461,27 +437,13 @@ func TestProductService_Patch(t *testing.T) {
 			wantErr: true,
 			wantP: model.Product{ID: "1", Name: "Coffee", Price: 499},
 		},
-		{
-			name: "Invalid Product",
-			id: "1",
-			patch: ProductPatch{Name: &invalidName},
-			repo: &fakeProductRepo{
-				products: []model.Product{
-					{ID: "1", Name: "Coffee", Price: 499},
-					{ID: "2", Name: "Sandwich", Price: 899},
-				},
-			},
-			wantLen:  2,
-			wantErr: true,
-			wantP: model.Product{ID: "1", Name: "Coffee", Price: 499},
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			svc := NewProductService(tt.repo)
-			err := svc.PatchProduct(context.Background(), tt.id, tt.patch)
+			err := svc.PatchProduct(context.Background(), tt.id, tt.pName, tt.pPrice)
 
 			if tt.wantLen != len(tt.repo.products) {
 				t.Fatalf("expected %d elements, got %d", tt.wantLen, len(tt.repo.products))

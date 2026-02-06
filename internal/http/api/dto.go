@@ -1,16 +1,16 @@
-package service
+package api
 
-type ProductCreate struct {
+type CreateProductRequest struct {
 	Name string `json:"name"`
 	Price int64 `json:"price"`
 }
 
-type ProductUpdate struct {
+type UpdateProductRequest struct {
 	Name string `json:"name"`
 	Price int64 `json:"price"`
 }
 
-type ProductPatch struct {
+type PatchProductRequest struct {
 	Name *string `json:"name,omitempty"`
 	Price *int64 `json:"price,omitempty"`
 }

@@ -37,19 +37,12 @@ func (f *fakeProductService) GetProduct(ctx context.Context, id string) (*model.
 	return nil, errors.New("not found")
 }
 
-func (f *fakeProductService) CreateProduct(ctx context.Context, p model.Product) error {
-	if p.ID == "" || p.Name == "" || p.Price <= 0 {
-		return service.ErrInvalidProduct
-	}
+func (f *fakeProductService) CreateProduct(ctx context.Context, name string, price int64) (string, error) {
 
-	for _, product := range f.products {
-		if product.ID == p.ID {
-			return service.ErrProductAlreadyExists
-		}
-	}
-
+	id := "3";
+	p := model.Product{ID: id, Name: name, Price: price}
 	f.products = append(f.products, p)
-	return nil
+	return id, nil
 }
 
 func (f *fakeProductService) DeleteProduct(ctx context.Context, id string) error {
@@ -67,44 +60,29 @@ func (f *fakeProductService) DeleteProduct(ctx context.Context, id string) error
 	return service.ErrProductNotFound
 }
 
-func (f *fakeProductService) UpdateProduct(ctx context.Context, id string, upd service.ProductUpdate) error {
-	if id == "" {
-		return service.ErrInvalidProduct
-	} else if upd.Name == "" {
-		return service.ErrInvalidName
-	} else if upd.Price <= 0 {
-		return service.ErrInvalidPrice
-	}
-
-	p := model.Product{ID: id, Name: upd.Name, Price: upd.Price}
+func (f *fakeProductService) UpdateProduct(ctx context.Context, id string, name string, price int64) error {
 	for i, product := range f.products {
 		if product.ID == id {
-			f.products[i] = p
+			f.products[i].Name = name
+			f.products[i].Price = price
 			return nil
 		}
 	}
 	return service.ErrProductNotFound
 }
 
-func (f *fakeProductService) PatchProduct(ctx context.Context, id string, patch service.ProductPatch) error {
+func (f *fakeProductService) PatchProduct(ctx context.Context, id string, name *string, price *int64) error {
 	if id == "" {
 		return service.ErrInvalidProduct
 	}
 
 	for i, product := range f.products {
 		if product.ID == id {
-			if patch.Name != nil {
-				if *patch.Name == "" {
-					return service.ErrInvalidProduct
-				}
-				f.products[i].Name = *patch.Name
+			if name != nil {
+				f.products[i].Name = *name
 			}
-
-			if patch.Price != nil {
-				if *patch.Price <= 0 {
-					return service.ErrInvalidProduct
-				}
-				f.products[i].Price = *patch.Price
+			if price != nil {
+				f.products[i].Price = *price
 			}
 			return nil
 		}
@@ -255,7 +233,7 @@ func TestProductHandler_Create(t *testing.T) {
 	}{
 		{
 			name: "Success",
-			body : `{"id":"3","name":"Tea","price":499}`,
+			body : `{"name":"Tea","price":499}`,
 			service: &fakeProductService{
 				products: []model.Product{
 					{ID: "1", Name: "Coffee", Price: 499},
@@ -264,28 +242,6 @@ func TestProductHandler_Create(t *testing.T) {
 			},
 			wantStatus: http.StatusCreated,
 			wantLen: 3,
-		},
-		{
-			name: "Already exists",
-			body : `{"id":"3","name":"Tea","price":499}`,
-			service: &fakeProductService{
-				products: []model.Product{
-					{ID: "3", Name: "Tea", Price: 499},
-				},
-			},
-			wantStatus: http.StatusConflict,
-			wantLen: 1,
-		},
-		{
-			name: "Invalid Product",
-			body : `{"id":"","name":"","price":0}`,
-			service: &fakeProductService{
-				products: []model.Product{
-					{ID: "3", Name: "Tea", Price: 499},
-				},
-			},
-			wantStatus: http.StatusBadRequest,
-			wantLen: 1,
 		},
 	}
 
@@ -415,7 +371,7 @@ func TestProductHandler_Update(t *testing.T) {
 		{
 			name: "Success",
 			id: "1",
-			body: `{"id":"1","name":"Tea","price":599}`,
+			body: `{"name":"Tea","price":599}`,
 			service: &fakeProductService{
 				products: []model.Product{
 					{ID: "1", Name: "Coffee", Price: 499},
@@ -429,7 +385,7 @@ func TestProductHandler_Update(t *testing.T) {
 		{
 			name: "Not found",
 			id: "2",
-			body: `{"id":"2","name":"Tea","price":599}`,
+			body: `{"name":"Tea","price":599}`,
 			service: &fakeProductService{
 				products: []model.Product{
 					{ID: "1", Name: "Coffee", Price: 499},
@@ -442,7 +398,7 @@ func TestProductHandler_Update(t *testing.T) {
 		{
 			name: "Invalid product",
 			id: "",
-			body: `{"id":"","name":"Coffee","price":244}`,
+			body: `{"Coffee","price":244}`,
 			service: &fakeProductService{
 				products: []model.Product{
 					{ID: "1", Name: "Tea", Price: 499},
@@ -454,8 +410,8 @@ func TestProductHandler_Update(t *testing.T) {
 		},
 		{
 			name: "Invalid name",
-			id: "",
-			body: `{"id":"1","name":"","price":233}`,
+			id: "1",
+			body: `{"name":"","price":233}`,
 			service: &fakeProductService{
 				products: []model.Product{
 					{ID: "1", Name: "Tea", Price: 499},
@@ -467,8 +423,8 @@ func TestProductHandler_Update(t *testing.T) {
 		},
 		{
 			name: "Invalid price",
-			id: "",
-			body: `{"id":"1","name":"Coffee","price":0}`,
+			id: "1",
+			body: `{"name":"Coffee","price":0}`,
 			service: &fakeProductService{
 				products: []model.Product{
 					{ID: "1", Name: "Tea", Price: 499},

@@ -16,9 +16,9 @@ import (
 type ProductService interface {
 	ListProducts(ctx context.Context) ([]model.Product, error)
 	GetProduct(ctx context.Context, id string) (*model.Product, error)
-	CreateProduct(ctx context.Context, p model.Product) error
-	UpdateProduct(ctx context.Context, id string, upd service.ProductUpdate) error
-	PatchProduct(ctx context.Context, id string, patch service.ProductPatch) error
+	CreateProduct(ctx context.Context, name string, price int64) (string, error)
+	UpdateProduct(ctx context.Context, id string, name string, price int64) error
+	PatchProduct(ctx context.Context, id string, name *string, price *int64) error
 	DeleteProduct(ctx context.Context, id string) error
 }
 
@@ -62,23 +62,35 @@ func (h *ProductHandler) listProducts(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func validateCreate(req CreateProductRequest) error {
+	if strings.TrimSpace(req.Name) == "" {
+		return ErrInvalidName
+	}
+	if req.Price <= 0 {
+		return ErrInvalidPrice
+	}
+	
+	return nil
+}
+
 func (h *ProductHandler) createProduct(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 5 * time.Second)
 	defer cancel()
 
-	var p model.Product
-	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+	var req CreateProductRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSONError(w, "Invalid json", http.StatusBadRequest)
+		return
+	} else if err := validateCreate(req); err != nil {
+		writeJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	err := h.service.CreateProduct(ctx, p)
+	id, err := h.service.CreateProduct(ctx, req.Name, req.Price)
 	if err != nil {
 		switch err {
 			case service.ErrInvalidProduct:
 				writeJSONError(w, err.Error(), http.StatusBadRequest)
-			case service.ErrProductAlreadyExists:
-				writeJSONError(w, err.Error(), http.StatusConflict)
 			case context.DeadlineExceeded:
 				writeJSONError(w, "Request timeout", http.StatusRequestTimeout)
 			default:
@@ -88,6 +100,7 @@ func (h *ProductHandler) createProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	p := model.Product{ID: id, Name: req.Name, Price: req.Price}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(w).Encode(p); err != nil {
@@ -139,24 +152,33 @@ func (h *ProductHandler) getProduct(w http.ResponseWriter, r *http.Request, id s
 	}
 }
 
+func validateUpdate(req UpdateProductRequest) error {
+	if strings.TrimSpace(req.Name) == "" {
+		return ErrInvalidName
+	}
+	if req.Price <= 0 {
+		return ErrInvalidPrice
+	}
+	return nil
+}
+
 func (h *ProductHandler) updateProduct(w http.ResponseWriter, r *http.Request, id string) {
 	ctx, cancel := context.WithTimeout(r.Context(), 5 * time.Second)
 	defer cancel()
 
-	var upd service.ProductUpdate
-	if err := json.NewDecoder(r.Body).Decode(&upd); err != nil {
+	var req UpdateProductRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSONError(w, "invalid json", http.StatusBadRequest)
+		return
+	} else if err := validateUpdate(req); err != nil {
+		writeJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	err := h.service.UpdateProduct(ctx, id, upd)
+	err := h.service.UpdateProduct(ctx, id, req.Name, req.Price)
 	if err != nil {
 		switch err {
 		case service.ErrInvalidProduct:
-			writeJSONError(w, err.Error(), http.StatusBadRequest)
-		case service.ErrInvalidName:
-			writeJSONError(w, err.Error(), http.StatusBadRequest)
-		case service.ErrInvalidPrice:
 			writeJSONError(w, err.Error(), http.StatusBadRequest)
 		case service.ErrProductNotFound:
 			writeJSONError(w, err.Error(), http.StatusNotFound)
@@ -169,30 +191,44 @@ func (h *ProductHandler) updateProduct(w http.ResponseWriter, r *http.Request, i
 		return
 	}
 
-	updated := model.Product{ID: id, Name: upd.Name, Price: upd.Price}
-
+	p := model.Product{ID: id, Name: req.Name, Price: req.Price}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(updated); err != nil {
+	if err := json.NewEncoder(w).Encode(p); err != nil {
 		log.Printf("json encoding error: %v", err)
 	}
+}
+
+func validatePatch(req PatchProductRequest) error {
+	if req.Name != nil && strings.TrimSpace(*req.Name) == "" {
+		return ErrInvalidName
+	}
+	if req.Price != nil && *req.Price <= 0 {
+		return ErrInvalidPrice
+	}
+	if req.Name == nil && req.Price == nil {
+		return ErrEmptyPatch
+	}
+	return nil
 }
 
 func (h *ProductHandler) patchProduct(w http.ResponseWriter, r *http.Request, id string) {
 	ctx, cancel := context.WithTimeout(r.Context(), 5 * time.Second)
 	defer cancel()
 
-	var patch service.ProductPatch
-	if err := json.NewDecoder(r.Body).Decode(&patch); err != nil {
+	var req PatchProductRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSONError(w, "Invalid json", http.StatusBadRequest)
 		return
 	}
+	if err := validatePatch(req); err != nil {
+		writeJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
-	err := h.service.PatchProduct(ctx, id ,patch)
+	err := h.service.PatchProduct(ctx, id, req.Name, req.Price)
 	if err != nil {
 		switch err {
-			case service.ErrInvalidProduct:
-				writeJSONError(w, err.Error(), http.StatusBadRequest)
 			case service.ErrProductNotFound:
 				writeJSONError(w, err.Error(), http.StatusNotFound)
 			case context.DeadlineExceeded:
@@ -204,14 +240,16 @@ func (h *ProductHandler) patchProduct(w http.ResponseWriter, r *http.Request, id
 		return
 	}
 
-	updated, err := h.service.GetProduct(ctx, id)
-	if err != nil {
-		writeJSONError(w, "Internal error", http.StatusInternalServerError)
-		return
+	p := model.Product{ID: id}
+	if req.Name != nil {
+		p.Name = *req.Name
+	}
+	if req.Price != nil {
+		p.Price = *req.Price
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(updated); err != nil {
+	if err := json.NewEncoder(w).Encode(p); err != nil {
 		log.Printf("json encoding error: %v", err)
 	}
 }

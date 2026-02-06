@@ -2,7 +2,8 @@ package service
 
 import (
 	"context"
-	"strings"
+
+	"github.com/google/uuid"
 
 	"github.com/v-kuu/mini-marketplace/internal/model"
 )
@@ -46,27 +47,31 @@ func (s *ProductService) GetProduct(ctx context.Context, id string) (*model.Prod
 	return s.repo.GetByID(ctx, id)
 }
 
-func (s *ProductService) CreateProduct(ctx context.Context, p model.Product) error {
+func (s *ProductService) CreateProduct(ctx context.Context, name string, price int64) (string, error) {
 	select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return "", ctx.Err()
 		default:
 	}
 
-	if p.ID == "" || p.Name == "" || p.Price <= 0 {
-		return ErrInvalidProduct
+	var id string
+	existing := &model.Product{}
+	for existing != nil {
+		select {
+			case <-ctx.Done():
+				return "", ctx.Err()
+			default:
+		}
+		id = uuid.New().String()
+		new, err := s.repo.GetByID(ctx, id)
+		if err != nil {
+			return id, err
+		}
+		existing = new
 	}
 
-	existing, err := s.repo.GetByID(ctx, p.ID)
-	if err != nil {
-		return err
-	}
-
-	if existing != nil {
-		return ErrProductAlreadyExists
-	}
-
-	return s.repo.Create(ctx, p)
+	p := model.Product{ID: id, Name: name, Price: price}
+	return id, s.repo.Create(ctx, p)
 }
 
 func (s *ProductService) DeleteProduct(ctx context.Context, id string) error {
@@ -91,17 +96,7 @@ func (s *ProductService) DeleteProduct(ctx context.Context, id string) error {
 	return s.repo.Delete(ctx, id)
 }
 
-func validateUpdate(req ProductUpdate) error {
-	if strings.TrimSpace(req.Name) == "" {
-		return ErrInvalidName
-	}
-	if req.Price <= 0 {
-		return ErrInvalidPrice
-	}
-	return nil
-}
-
-func (s *ProductService) UpdateProduct(ctx context.Context, id string, upd ProductUpdate) error {
+func (s *ProductService) UpdateProduct(ctx context.Context, id string, name string, price int64) error {
 	select {
 		case <-ctx.Done():
 			return ctx.Err()
@@ -111,28 +106,12 @@ func (s *ProductService) UpdateProduct(ctx context.Context, id string, upd Produ
 	if id == "" {
 		return ErrInvalidProduct
 	}
-	if err := validateUpdate(upd); err != nil {
-		return err
-	}
 
-	p := model.Product{ID: id, Name: upd.Name, Price: upd.Price}
+	p := model.Product{ID: id, Name: name, Price: price}
 	return s.repo.Update(ctx, p)
 }
 
-func validatePatch(req ProductPatch) error {
-	if req.Name != nil && strings.TrimSpace(*req.Name) == "" {
-		return ErrInvalidName
-	}
-	if req.Price != nil && *req.Price <= 0 {
-		return ErrInvalidPrice
-	}
-	if req.Name == nil && req.Price == nil {
-		return ErrEmptyPatch
-	}
-	return nil
-}
-
-func (s *ProductService) PatchProduct(ctx context.Context, id string, patch ProductPatch) error {
+func (s *ProductService) PatchProduct(ctx context.Context, id string, name *string, price *int64) error {
 	select {
 		case <-ctx.Done():
 			return ctx.Err()
@@ -142,18 +121,13 @@ func (s *ProductService) PatchProduct(ctx context.Context, id string, patch Prod
 	if id == "" {
 		return ErrInvalidProduct
 	}
-	if err := validatePatch(patch); err != nil {
-		return err
+	p := model.Product{ID: id}
+	if name != nil {
+		p.Name = *name
 	}
-	
-	existing := model.Product{ID: id}
-	if patch.Name != nil {
-		existing.Name = *patch.Name
+	if price != nil {
+		p.Price = *price
 	}
-
-	if patch.Price != nil {
-		existing.Price = *patch.Price
-	}
-
-	return s.repo.Update(ctx, existing)
+	err := s.repo.Update(ctx, p)
+	return err
 }
