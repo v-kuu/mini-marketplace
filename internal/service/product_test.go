@@ -331,7 +331,7 @@ func TestProductService_Update(t *testing.T) {
 	tests := []struct {
 		name string
 		id string
-		p model.Product
+		p ProductUpdate
 		repo *fakeProductRepo
 		wantLen int
 		wantErr bool
@@ -339,7 +339,7 @@ func TestProductService_Update(t *testing.T) {
 		{
 			name: "Success",
 			id: "1",
-			p: model.Product{ID: "1", Name: "Tea", Price: 599},
+			p: ProductUpdate{Name: "Tea", Price: 599},
 			repo: &fakeProductRepo{
 				products: []model.Product{
 					{ID: "1", Name: "Coffee", Price: 499},
@@ -352,7 +352,7 @@ func TestProductService_Update(t *testing.T) {
 		{
 			name: "Not found",
 			id: "3",
-			p: model.Product{ID: "3", Name: "Tea", Price: 599},
+			p: ProductUpdate{Name: "Tea", Price: 599},
 			repo: &fakeProductRepo{
 				products: []model.Product{
 					{ID: "1", Name: "Coffee", Price: 499},
@@ -365,7 +365,7 @@ func TestProductService_Update(t *testing.T) {
 		{
 			name: "Invalid id",
 			id: "",
-			p: model.Product{ID: "", Name: "", Price: 0},
+			p: ProductUpdate{Name: "", Price: 0},
 			repo: &fakeProductRepo{
 				products: []model.Product{
 					{ID: "1", Name: "Coffee", Price: 499},
@@ -373,19 +373,6 @@ func TestProductService_Update(t *testing.T) {
 				},
 			},
 			wantLen: 2,
-			wantErr: true,
-		},
-		{
-			name: "ID Mismatch",
-			id: "1",
-			p: model.Product{ID: "2", Name: "Tea", Price: 599},
-			repo: &fakeProductRepo{
-				products: []model.Product{
-					{ID: "1", Name: "Coffee", Price: 499},
-					{ID: "2", Name: "Sandwich", Price: 899},
-				},
-			},
-			wantLen:  2,
 			wantErr: true,
 		},
 	}

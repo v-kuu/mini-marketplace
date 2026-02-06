@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strings"
 
 	"github.com/v-kuu/mini-marketplace/internal/model"
 )
@@ -90,23 +91,45 @@ func (s *ProductService) DeleteProduct(ctx context.Context, id string) error {
 	return s.repo.Delete(ctx, id)
 }
 
-func (s *ProductService) UpdateProduct(ctx context.Context, id string, p model.Product) error {
+func validateUpdate(req ProductUpdate) error {
+	if strings.TrimSpace(req.Name) == "" {
+		return ErrInvalidName
+	}
+	if req.Price <= 0 {
+		return ErrInvalidPrice
+	}
+	return nil
+}
+
+func (s *ProductService) UpdateProduct(ctx context.Context, id string, upd ProductUpdate) error {
 	select {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
 	}
 
-	if id == "" || p.Name == "" || p.Price <= 0 {
+	if id == "" {
 		return ErrInvalidProduct
 	}
-
-	if p.ID != "" && p.ID != id {
-		return ErrIDMismatch
+	if err := validateUpdate(upd); err != nil {
+		return err
 	}
-	
-	p.ID = id
+
+	p := model.Product{ID: id, Name: upd.Name, Price: upd.Price}
 	return s.repo.Update(ctx, p)
+}
+
+func validatePatch(req ProductPatch) error {
+	if req.Name != nil && strings.TrimSpace(*req.Name) == "" {
+		return ErrInvalidName
+	}
+	if req.Price != nil && *req.Price <= 0 {
+		return ErrInvalidPrice
+	}
+	if req.Name == nil && req.Price == nil {
+		return ErrEmptyPatch
+	}
+	return nil
 }
 
 func (s *ProductService) PatchProduct(ctx context.Context, id string, patch ProductPatch) error {
@@ -119,19 +142,16 @@ func (s *ProductService) PatchProduct(ctx context.Context, id string, patch Prod
 	if id == "" {
 		return ErrInvalidProduct
 	}
+	if err := validatePatch(patch); err != nil {
+		return err
+	}
 	
 	existing := model.Product{ID: id}
 	if patch.Name != nil {
-		if *patch.Name == "" {
-			return ErrInvalidProduct
-		}
 		existing.Name = *patch.Name
 	}
 
 	if patch.Price != nil {
-		if *patch.Price <= 0 {
-			return ErrInvalidProduct
-		}
 		existing.Price = *patch.Price
 	}
 

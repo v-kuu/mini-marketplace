@@ -17,7 +17,7 @@ type ProductService interface {
 	ListProducts(ctx context.Context) ([]model.Product, error)
 	GetProduct(ctx context.Context, id string) (*model.Product, error)
 	CreateProduct(ctx context.Context, p model.Product) error
-	UpdateProduct(ctx context.Context, id string, p model.Product) error
+	UpdateProduct(ctx context.Context, id string, upd service.ProductUpdate) error
 	PatchProduct(ctx context.Context, id string, patch service.ProductPatch) error
 	DeleteProduct(ctx context.Context, id string) error
 }
@@ -143,18 +143,20 @@ func (h *ProductHandler) updateProduct(w http.ResponseWriter, r *http.Request, i
 	ctx, cancel := context.WithTimeout(r.Context(), 5 * time.Second)
 	defer cancel()
 
-	var p model.Product
-	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+	var upd service.ProductUpdate
+	if err := json.NewDecoder(r.Body).Decode(&upd); err != nil {
 		writeJSONError(w, "invalid json", http.StatusBadRequest)
 		return
 	}
 
-	err := h.service.UpdateProduct(ctx, id, p)
+	err := h.service.UpdateProduct(ctx, id, upd)
 	if err != nil {
 		switch err {
 		case service.ErrInvalidProduct:
 			writeJSONError(w, err.Error(), http.StatusBadRequest)
-		case service.ErrIDMismatch:
+		case service.ErrInvalidName:
+			writeJSONError(w, err.Error(), http.StatusBadRequest)
+		case service.ErrInvalidPrice:
 			writeJSONError(w, err.Error(), http.StatusBadRequest)
 		case service.ErrProductNotFound:
 			writeJSONError(w, err.Error(), http.StatusNotFound)
@@ -167,8 +169,7 @@ func (h *ProductHandler) updateProduct(w http.ResponseWriter, r *http.Request, i
 		return
 	}
 
-	updated := p
-	updated.ID = id
+	updated := model.Product{ID: id, Name: upd.Name, Price: upd.Price}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

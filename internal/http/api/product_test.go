@@ -67,15 +67,16 @@ func (f *fakeProductService) DeleteProduct(ctx context.Context, id string) error
 	return service.ErrProductNotFound
 }
 
-func (f *fakeProductService) UpdateProduct(ctx context.Context, id string, p model.Product) error {
-	if id == "" || p.Name == "" || p.Price <= 0 {
+func (f *fakeProductService) UpdateProduct(ctx context.Context, id string, upd service.ProductUpdate) error {
+	if id == "" {
 		return service.ErrInvalidProduct
-	}
-	if p.ID != "" && p.ID != id {
-		return service.ErrIDMismatch
+	} else if upd.Name == "" {
+		return service.ErrInvalidName
+	} else if upd.Price <= 0 {
+		return service.ErrInvalidPrice
 	}
 
-	p.ID = id
+	p := model.Product{ID: id, Name: upd.Name, Price: upd.Price}
 	for i, product := range f.products {
 		if product.ID == id {
 			f.products[i] = p
@@ -441,7 +442,7 @@ func TestProductHandler_Update(t *testing.T) {
 		{
 			name: "Invalid product",
 			id: "",
-			body: `{"id":"","name":"","price":0}`,
+			body: `{"id":"","name":"Coffee","price":244}`,
 			service: &fakeProductService{
 				products: []model.Product{
 					{ID: "1", Name: "Tea", Price: 499},
@@ -452,18 +453,30 @@ func TestProductHandler_Update(t *testing.T) {
 			wantName: "Tea",
 		},
 		{
-			name: "ID Mismatch",
-			id: "1",
-			body: `{"id":"2","name":"Tea","price":599}`,
+			name: "Invalid name",
+			id: "",
+			body: `{"id":"1","name":"","price":233}`,
 			service: &fakeProductService{
 				products: []model.Product{
-					{ID: "1", Name: "Coffee", Price: 499},
-					{ID: "2", Name: "Sandwich", Price: 899},
+					{ID: "1", Name: "Tea", Price: 499},
 				},
 			},
 			wantStatus: http.StatusBadRequest,
-			wantLen: 2,
-			wantName: "Coffee",
+			wantLen: 1,
+			wantName: "Tea",
+		},
+		{
+			name: "Invalid price",
+			id: "",
+			body: `{"id":"1","name":"Coffee","price":0}`,
+			service: &fakeProductService{
+				products: []model.Product{
+					{ID: "1", Name: "Tea", Price: 499},
+				},
+			},
+			wantStatus: http.StatusBadRequest,
+			wantLen: 1,
+			wantName: "Tea",
 		},
 	}
 
