@@ -88,10 +88,10 @@ func (h *ProductHandler) createProduct(w http.ResponseWriter, r *http.Request) {
 
 	id, err := h.service.CreateProduct(ctx, req.Name, req.Price)
 	if err != nil {
-		switch err {
-			case service.ErrInvalidProduct:
+		switch {
+			case errors.Is(err, service.ErrInvalidProduct):
 				writeJSONError(w, err.Error(), http.StatusBadRequest)
-			case context.DeadlineExceeded:
+			case errors.Is(err, context.DeadlineExceeded):
 				writeJSONError(w, "Request timeout", http.StatusRequestTimeout)
 			default:
 				log.Printf("CreateProduct: %v", err)
@@ -177,12 +177,12 @@ func (h *ProductHandler) updateProduct(w http.ResponseWriter, r *http.Request, i
 
 	err := h.service.UpdateProduct(ctx, id, req.Name, req.Price)
 	if err != nil {
-		switch err {
-		case service.ErrInvalidProduct:
+		switch {
+		case errors.Is(err, service.ErrInvalidProduct):
 			writeJSONError(w, err.Error(), http.StatusBadRequest)
-		case service.ErrProductNotFound:
+		case errors.Is(err, service.ErrProductNotFound):
 			writeJSONError(w, err.Error(), http.StatusNotFound)
-		case context.DeadlineExceeded:
+		case errors.Is(err, context.DeadlineExceeded):
 			writeJSONError(w, "Request timeout", http.StatusRequestTimeout)
 		default:
 			log.Printf("UpdateProduct: %v", err)
@@ -228,10 +228,10 @@ func (h *ProductHandler) patchProduct(w http.ResponseWriter, r *http.Request, id
 
 	err := h.service.PatchProduct(ctx, id, req.Name, req.Price)
 	if err != nil {
-		switch err {
-			case service.ErrProductNotFound:
+		switch {
+			case errors.Is(err, service.ErrProductNotFound):
 				writeJSONError(w, err.Error(), http.StatusNotFound)
-			case context.DeadlineExceeded:
+			case errors.Is(err, context.DeadlineExceeded):
 				writeJSONError(w, "Request timeout", http.StatusRequestTimeout)
 			default:
 				log.Printf("PatchProduct: %v", err)
@@ -260,12 +260,12 @@ func (h *ProductHandler) deleteProduct(w http.ResponseWriter, r *http.Request, i
 
 	err := h.service.DeleteProduct(ctx, id)
 	if err != nil {
-		switch err {
-			case service.ErrInvalidProduct:
+		switch {
+			case errors.Is(err, service.ErrInvalidProduct):
 				writeJSONError(w, err.Error(), http.StatusBadRequest)
-			case service.ErrProductNotFound:
+			case errors.Is(err, service.ErrProductNotFound):
 				writeJSONError(w, err.Error(), http.StatusNotFound)
-			case context.DeadlineExceeded:
+			case errors.Is(err, context.DeadlineExceeded):
 				writeJSONError(w, "Request timeout", http.StatusRequestTimeout)
 			default:
 				log.Printf("DeleteProduct: %v", err)
