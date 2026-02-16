@@ -139,7 +139,8 @@ func (r *ProductRepository) Update(ctx context.Context, p model.Product) error {
 		)
 
 		var prev model.Product
-		if err := row.Scan(&prev.ID, &prev.Name, &prev.Price); errors.Is(err, sql.ErrNoRows) {
+		err := row.Scan(&prev.ID, &prev.Name, &prev.Price)
+		if errors.Is(err, sql.ErrNoRows) {
 			return service.ErrProductNotFound
 		} else if err != nil {
 			return err
