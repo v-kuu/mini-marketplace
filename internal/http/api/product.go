@@ -42,14 +42,14 @@ func (h *ProductHandler) Products(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ProductHandler) listProducts(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeoutCause(r.Context(), 5 * time.Second, context.DeadlineExceeded)
+	ctx, cancel := context.WithTimeout(r.Context(), 5 * time.Second)
 	defer cancel()
 
 	products, err := h.service.ListProducts(ctx)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			writeJSONError(w, "Request timeout", http.StatusRequestTimeout)
-		} else {
+		} else if !errors.Is(err, context.Canceled) {
 			log.Printf("ListProducts: %v", err)
 			writeJSONError(w, "Internal error", http.StatusInternalServerError)
 		}
@@ -74,7 +74,7 @@ func validateCreate(req CreateProductRequest) error {
 }
 
 func (h *ProductHandler) createProduct(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeoutCause(r.Context(), 5 * time.Second, context.DeadlineExceeded)
+	ctx, cancel := context.WithTimeout(r.Context(), 5 * time.Second)
 	defer cancel()
 
 	var req CreateProductRequest
@@ -91,6 +91,7 @@ func (h *ProductHandler) createProduct(w http.ResponseWriter, r *http.Request) {
 		switch {
 			case errors.Is(err, service.ErrInvalidProduct):
 				writeJSONError(w, err.Error(), http.StatusBadRequest)
+			case errors.Is(err, context.Canceled):
 			case errors.Is(err, context.DeadlineExceeded):
 				writeJSONError(w, "Request timeout", http.StatusRequestTimeout)
 			default:
@@ -127,14 +128,14 @@ func (h *ProductHandler) ProductByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ProductHandler) getProduct(w http.ResponseWriter, r *http.Request, id string) {
-	ctx, cancel := context.WithTimeoutCause(r.Context(), 5 * time.Second, context.DeadlineExceeded)
+	ctx, cancel := context.WithTimeout(r.Context(), 5 * time.Second)
 	defer cancel()
 
 	product, err := h.service.GetProduct(ctx, id)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			writeJSONError(w, "Request timeout", http.StatusRequestTimeout)
-		} else {
+		} else if !errors.Is(err, context.Canceled) {
 			log.Printf("GetProduct: %v", err)
 			writeJSONError(w, "Internal error", http.StatusInternalServerError)
 		}
@@ -163,7 +164,7 @@ func validateUpdate(req UpdateProductRequest) error {
 }
 
 func (h *ProductHandler) updateProduct(w http.ResponseWriter, r *http.Request, id string) {
-	ctx, cancel := context.WithTimeoutCause(r.Context(), 5 * time.Second, context.DeadlineExceeded)
+	ctx, cancel := context.WithTimeout(r.Context(), 5 * time.Second)
 	defer cancel()
 
 	var req UpdateProductRequest
@@ -182,6 +183,7 @@ func (h *ProductHandler) updateProduct(w http.ResponseWriter, r *http.Request, i
 			writeJSONError(w, err.Error(), http.StatusBadRequest)
 		case errors.Is(err, service.ErrProductNotFound):
 			writeJSONError(w, err.Error(), http.StatusNotFound)
+		case errors.Is(err, context.Canceled):
 		case errors.Is(err, context.DeadlineExceeded):
 			writeJSONError(w, "Request timeout", http.StatusRequestTimeout)
 		default:
@@ -213,7 +215,7 @@ func validatePatch(req PatchProductRequest) error {
 }
 
 func (h *ProductHandler) patchProduct(w http.ResponseWriter, r *http.Request, id string) {
-	ctx, cancel := context.WithTimeoutCause(r.Context(), 5 * time.Second, context.DeadlineExceeded)
+	ctx, cancel := context.WithTimeout(r.Context(), 5 * time.Second)
 	defer cancel()
 
 	var req PatchProductRequest
@@ -231,6 +233,7 @@ func (h *ProductHandler) patchProduct(w http.ResponseWriter, r *http.Request, id
 		switch {
 			case errors.Is(err, service.ErrProductNotFound):
 				writeJSONError(w, err.Error(), http.StatusNotFound)
+			case errors.Is(err, context.Canceled):
 			case errors.Is(err, context.DeadlineExceeded):
 				writeJSONError(w, "Request timeout", http.StatusRequestTimeout)
 			default:
@@ -255,7 +258,7 @@ func (h *ProductHandler) patchProduct(w http.ResponseWriter, r *http.Request, id
 }
 
 func (h *ProductHandler) deleteProduct(w http.ResponseWriter, r *http.Request, id string) {
-	ctx, cancel := context.WithTimeoutCause(r.Context(), 5 * time.Second, context.DeadlineExceeded)
+	ctx, cancel := context.WithTimeout(r.Context(), 5 * time.Second)
 	defer cancel()
 
 	err := h.service.DeleteProduct(ctx, id)
@@ -265,6 +268,7 @@ func (h *ProductHandler) deleteProduct(w http.ResponseWriter, r *http.Request, i
 				writeJSONError(w, err.Error(), http.StatusBadRequest)
 			case errors.Is(err, service.ErrProductNotFound):
 				writeJSONError(w, err.Error(), http.StatusNotFound)
+			case errors.Is(err, context.Canceled):
 			case errors.Is(err, context.DeadlineExceeded):
 				writeJSONError(w, "Request timeout", http.StatusRequestTimeout)
 			default:
