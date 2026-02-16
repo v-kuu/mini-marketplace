@@ -9,9 +9,9 @@ func withTx(ctx context.Context, db *sql.DB, fn func(tx *sql.Tx) error) error {
 	if err != nil {
 		return err
 	}
+	defer tx.Rollback() //nolint:all
 
 	if err := fn(tx); err != nil {
-		_ = tx.Rollback()
 		return err
 	}
 
