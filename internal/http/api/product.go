@@ -91,6 +91,8 @@ func (h *ProductHandler) createProduct(w http.ResponseWriter, r *http.Request) {
 		switch {
 			case errors.Is(err, service.ErrInvalidProduct):
 				writeJSONError(w, err.Error(), http.StatusBadRequest)
+			case errors.Is(err, service.ErrProductAlreadyExists):
+				writeJSONError(w, err.Error(), http.StatusConflict)
 			case errors.Is(err, context.Canceled):
 			case errors.Is(err, context.DeadlineExceeded):
 				writeJSONError(w, "Request timeout", http.StatusRequestTimeout)

@@ -7,7 +7,7 @@ import (
 	"time"
 	"log"
 
-	_ "github.com/mattn/go-sqlite3"
+	"github.com/mattn/go-sqlite3"
 	"golang.org/x/sync/semaphore"
 
 	"github.com/v-kuu/mini-marketplace/internal/model"
@@ -101,6 +101,12 @@ func (r *ProductRepository) Create(ctx context.Context, p model.Product) error {
 			`INSERT INTO products (id, name, price) VALUES (?, ?, ?)`,
 			p.ID, p.Name, p.Price,
 		)
+		var sqliteErr sqlite3.Error
+		if errors.As(err, &sqliteErr) {
+			if sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique {
+				return service.ErrProductAlreadyExists
+			}
+		}
 		return err
 	})
 }
