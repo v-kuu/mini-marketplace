@@ -8,6 +8,7 @@ import (
 	"log"
 	"time"
 	"errors"
+	"syscall"
 
 	"github.com/v-kuu/mini-marketplace/internal/model"
 	"github.com/v-kuu/mini-marketplace/internal/service"
@@ -74,7 +75,7 @@ func validateCreate(req CreateProductRequest) error {
 }
 
 func (h *ProductHandler) createProduct(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 5 * time.Second)
+	ctx, cancel := context.WithTimeoutCause(r.Context(), 5 * time.Second, context.DeadlineExceeded)
 	defer cancel()
 
 	var req CreateProductRequest
@@ -130,7 +131,7 @@ func (h *ProductHandler) ProductByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ProductHandler) getProduct(w http.ResponseWriter, r *http.Request, id string) {
-	ctx, cancel := context.WithTimeout(r.Context(), 5 * time.Second)
+	ctx, cancel := context.WithTimeoutCause(r.Context(), 5 * time.Second, context.DeadlineExceeded)
 	defer cancel()
 
 	product, err := h.service.GetProduct(ctx, id)
@@ -166,7 +167,7 @@ func validateUpdate(req UpdateProductRequest) error {
 }
 
 func (h *ProductHandler) updateProduct(w http.ResponseWriter, r *http.Request, id string) {
-	ctx, cancel := context.WithTimeout(r.Context(), 5 * time.Second)
+	ctx, cancel := context.WithTimeoutCause(r.Context(), 5 * time.Second, context.DeadlineExceeded)
 	defer cancel()
 
 	var req UpdateProductRequest
@@ -217,7 +218,7 @@ func validatePatch(req PatchProductRequest) error {
 }
 
 func (h *ProductHandler) patchProduct(w http.ResponseWriter, r *http.Request, id string) {
-	ctx, cancel := context.WithTimeout(r.Context(), 5 * time.Second)
+	ctx, cancel := context.WithTimeoutCause(r.Context(), 5 * time.Second, context.DeadlineExceeded)
 	defer cancel()
 
 	var req PatchProductRequest
@@ -260,7 +261,7 @@ func (h *ProductHandler) patchProduct(w http.ResponseWriter, r *http.Request, id
 }
 
 func (h *ProductHandler) deleteProduct(w http.ResponseWriter, r *http.Request, id string) {
-	ctx, cancel := context.WithTimeout(r.Context(), 5 * time.Second)
+	ctx, cancel := context.WithTimeoutCause(r.Context(), 5 * time.Second, context.DeadlineExceeded)
 	defer cancel()
 
 	err := h.service.DeleteProduct(ctx, id)
@@ -287,6 +288,8 @@ func writeJSONError(w http.ResponseWriter, message string, statusCode int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	if err := json.NewEncoder(w).Encode(ErrorResponse{message}); err != nil {
-		log.Printf("json encoding error: %v", err)
+		if err != syscall.EPIPE && err != syscall.ECONNRESET {
+			log.Printf("json encoding error: %v", err)
+		}
 	}
 }
