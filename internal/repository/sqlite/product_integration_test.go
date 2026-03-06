@@ -7,6 +7,7 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/v-kuu/mini-marketplace/internal/model"
+	"github.com/v-kuu/mini-marketplace/internal/config"
 )
 
 func setupTestDB(t *testing.T) *sql.DB {
@@ -33,7 +34,6 @@ func setupTestDB(t *testing.T) *sql.DB {
 }
 
 func TestProductRepository_List(t *testing.T) {
-	var maxConcurrent int64 = 100
 	db := setupTestDB(t)
 	defer func () {
 		if err := db.Close(); err != nil {
@@ -41,7 +41,8 @@ func TestProductRepository_List(t *testing.T) {
 		}
 	}()
 
-	repo := NewProductRepository(db, maxConcurrent)
+	cfg := config.Load()
+	repo := NewProductRepository(db, cfg)
 
 	ctx := context.Background()
 
@@ -68,7 +69,6 @@ func TestProductRepository_List(t *testing.T) {
 }
 
 func TestProductRepository_List_ContextCancelled(t *testing.T) {
-	var maxConcurrent int64 = 100
 	db := setupTestDB(t)
 	defer func () {
 		if err := db.Close(); err != nil {
@@ -76,7 +76,8 @@ func TestProductRepository_List_ContextCancelled(t *testing.T) {
 		}
 	}()
 
-	repo := NewProductRepository(db, maxConcurrent * 2)
+	cfg := config.Load()
+	repo := NewProductRepository(db, cfg)
 	
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -88,7 +89,6 @@ func TestProductRepository_List_ContextCancelled(t *testing.T) {
 }
 
 func TestProductRepository_GetByID(t *testing.T) {
-	var maxConcurrent int64 = 100
 	db := setupTestDB(t)
 	defer func () {
 		if err := db.Close(); err != nil {
@@ -96,7 +96,8 @@ func TestProductRepository_GetByID(t *testing.T) {
 		}
 	}()
 
-	repo := NewProductRepository(db, maxConcurrent * 2)
+	cfg := config.Load()
+	repo := NewProductRepository(db, cfg)
 
 	ctx := context.Background()
 
@@ -124,7 +125,6 @@ func TestProductRepository_GetByID(t *testing.T) {
 }
 
 func TestProductRepository_Create(t *testing.T) {
-	var maxConcurrent int64 = 100
 	db := setupTestDB(t)
 	defer func () {
 		if err := db.Close(); err != nil {
@@ -132,7 +132,8 @@ func TestProductRepository_Create(t *testing.T) {
 		}
 	}()
 
-	repo := NewProductRepository(db, maxConcurrent * 2)
+	cfg := config.Load()
+	repo := NewProductRepository(db, cfg)
 
 	ctx := context.Background()
 
@@ -150,7 +151,6 @@ func TestProductRepository_Create(t *testing.T) {
 }
 
 func TestProductRepository_Delete(t *testing.T) {
-	var maxConcurrent int64 = 100
 	db := setupTestDB(t)
 	defer func () {
 		if err := db.Close(); err != nil {
@@ -158,7 +158,8 @@ func TestProductRepository_Delete(t *testing.T) {
 		}
 	}()
 
-	repo := NewProductRepository(db, maxConcurrent * 2)
+	cfg := config.Load()
+	repo := NewProductRepository(db, cfg)
 
 	ctx := context.Background()
 
@@ -195,7 +196,6 @@ func TestProductRepository_Delete(t *testing.T) {
 }
 
 func TestProductRepository_Update(t *testing.T) {
-	var maxConcurrent int64 = 100
 	db := setupTestDB(t)
 	defer func () {
 		if err := db.Close(); err != nil {
@@ -203,7 +203,8 @@ func TestProductRepository_Update(t *testing.T) {
 		}
 	}()
 
-	repo := NewProductRepository(db, maxConcurrent * 2)
+	cfg := config.Load()
+	repo := NewProductRepository(db, cfg)
 
 	ctx := context.Background()
 

@@ -2,14 +2,13 @@ package api
 
 import (
 	"net/http"
-	"os"
-	"strconv"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/v-kuu/mini-marketplace/internal/service"
 	"github.com/v-kuu/mini-marketplace/internal/repository/sqlite"
 	"github.com/v-kuu/mini-marketplace/internal/metrics"
+	"github.com/v-kuu/mini-marketplace/internal/config"
 	"github.com/v-kuu/mini-marketplace/internal/http/middleware"
 )
 
@@ -23,18 +22,8 @@ func AddRoutes() (*http.ServeMux, error) {
 
 	mux := http.NewServeMux()
 
-	var maxConcurrent int64
-	SEM_MAX, ok := os.LookupEnv("SEM_MAX")
-	if !ok {
-		maxConcurrent = 100
-	} else {
-		val, err := strconv.Atoi(SEM_MAX)
-		if err != nil {
-			return nil, err
-		}
-		maxConcurrent = int64(val);
-	}
-	repo := sqlite.NewProductRepository(db, maxConcurrent)
+	cfg := config.Load()
+	repo := sqlite.NewProductRepository(db, cfg)
 	svc := service.NewProductService(repo)
 	handler := NewProductHandler(svc)
 	ProductsHandler := http.HandlerFunc(handler.Products)

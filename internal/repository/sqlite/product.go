@@ -13,6 +13,7 @@ import (
 	"github.com/v-kuu/mini-marketplace/internal/model"
 	"github.com/v-kuu/mini-marketplace/internal/service"
 	"github.com/v-kuu/mini-marketplace/internal/metrics"
+	"github.com/v-kuu/mini-marketplace/internal/config"
 )
 
 type ProductRepository struct {
@@ -32,10 +33,10 @@ func OpenDB(dataSourceName string) (*sql.DB, error) {
 	return db, nil
 }
 
-func NewProductRepository(db *sql.DB, maxConcurrent int64) *ProductRepository {
+func NewProductRepository(db *sql.DB, cfg *config.Config) *ProductRepository {
 	return &ProductRepository{
 		db: db,
-		sem: semaphore.NewWeighted(maxConcurrent),
+		sem: semaphore.NewWeighted(cfg.SEM_MAX),
 	}
 }
 
