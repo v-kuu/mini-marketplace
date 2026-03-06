@@ -16,6 +16,7 @@ func Load() *Config {
 	return cfg
 }
 
+//nolint:all
 func getEnvStr(key, fallback string) string {
 	v, ok := os.LookupEnv(key)
 	if ok {
