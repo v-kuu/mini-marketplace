@@ -25,7 +25,7 @@ func AddRoutes() (*http.ServeMux, error) {
 	cfg := config.Load()
 	repo := sqlite.NewProductRepository(db, cfg)
 	svc := service.NewProductService(repo)
-	handler := NewProductHandler(svc)
+	handler := NewProductHandler(svc, cfg)
 	ProductsHandler := http.HandlerFunc(handler.Products)
 	ProductByIDHandler := http.HandlerFunc(handler.ProductByID)
 	mux.Handle("/products", middleware.Metrics(ProductsHandler, "/products"))

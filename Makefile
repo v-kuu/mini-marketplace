@@ -2,7 +2,7 @@ build:
 	go build ./cmd/server
 
 run: build
-	SEM_MAX=10 ./server
+	SEM_MAX=10 TIMEOUT=5 ./server
 
 up:
 	docker compose up --build -d

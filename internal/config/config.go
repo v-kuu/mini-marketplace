@@ -7,11 +7,13 @@ import (
 
 type Config struct {
 	SEM_MAX int64
+	TIMEOUT int64
 }
 
 func Load() *Config {
 	cfg := &Config{
 		SEM_MAX: getEnvInt("SEM_MAX", 100),
+		TIMEOUT: getEnvInt("TIMEOUT", 30),
 	}
 	return cfg
 }

@@ -12,6 +12,7 @@ import (
 
 	"github.com/v-kuu/mini-marketplace/internal/model"
 	"github.com/v-kuu/mini-marketplace/internal/service"
+	"github.com/v-kuu/mini-marketplace/internal/config"
 )
 
 type ProductService interface {
@@ -25,10 +26,11 @@ type ProductService interface {
 
 type ProductHandler struct {
 	service ProductService
+	timeout time.Duration
 }
 
-func NewProductHandler(s ProductService) *ProductHandler {
-	return &ProductHandler{service: s}
+func NewProductHandler(s ProductService, cfg *config.Config) *ProductHandler {
+	return &ProductHandler{service: s, timeout: time.Duration(cfg.TIMEOUT) * time.Second}
 }
 
 func (h *ProductHandler) Products(w http.ResponseWriter, r *http.Request) {
@@ -43,7 +45,7 @@ func (h *ProductHandler) Products(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ProductHandler) listProducts(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 5 * time.Second)
+	ctx, cancel := context.WithTimeoutCause(r.Context(), h.timeout, context.DeadlineExceeded)
 	defer cancel()
 
 	products, err := h.service.ListProducts(ctx)
@@ -75,7 +77,7 @@ func validateCreate(req CreateProductRequest) error {
 }
 
 func (h *ProductHandler) createProduct(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeoutCause(r.Context(), 5 * time.Second, context.DeadlineExceeded)
+	ctx, cancel := context.WithTimeoutCause(r.Context(), h.timeout, context.DeadlineExceeded)
 	defer cancel()
 
 	var req CreateProductRequest
@@ -131,7 +133,7 @@ func (h *ProductHandler) ProductByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ProductHandler) getProduct(w http.ResponseWriter, r *http.Request, id string) {
-	ctx, cancel := context.WithTimeoutCause(r.Context(), 5 * time.Second, context.DeadlineExceeded)
+	ctx, cancel := context.WithTimeoutCause(r.Context(), h.timeout, context.DeadlineExceeded)
 	defer cancel()
 
 	product, err := h.service.GetProduct(ctx, id)
@@ -167,7 +169,7 @@ func validateUpdate(req UpdateProductRequest) error {
 }
 
 func (h *ProductHandler) updateProduct(w http.ResponseWriter, r *http.Request, id string) {
-	ctx, cancel := context.WithTimeoutCause(r.Context(), 5 * time.Second, context.DeadlineExceeded)
+	ctx, cancel := context.WithTimeoutCause(r.Context(), h.timeout, context.DeadlineExceeded)
 	defer cancel()
 
 	var req UpdateProductRequest
@@ -218,7 +220,7 @@ func validatePatch(req PatchProductRequest) error {
 }
 
 func (h *ProductHandler) patchProduct(w http.ResponseWriter, r *http.Request, id string) {
-	ctx, cancel := context.WithTimeoutCause(r.Context(), 5 * time.Second, context.DeadlineExceeded)
+	ctx, cancel := context.WithTimeoutCause(r.Context(), h.timeout, context.DeadlineExceeded)
 	defer cancel()
 
 	var req PatchProductRequest
@@ -261,7 +263,7 @@ func (h *ProductHandler) patchProduct(w http.ResponseWriter, r *http.Request, id
 }
 
 func (h *ProductHandler) deleteProduct(w http.ResponseWriter, r *http.Request, id string) {
-	ctx, cancel := context.WithTimeoutCause(r.Context(), 5 * time.Second, context.DeadlineExceeded)
+	ctx, cancel := context.WithTimeoutCause(r.Context(), h.timeout, context.DeadlineExceeded)
 	defer cancel()
 
 	err := h.service.DeleteProduct(ctx, id)

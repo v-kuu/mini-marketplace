@@ -11,6 +11,7 @@ import (
 
 	"github.com/v-kuu/mini-marketplace/internal/model"
 	"github.com/v-kuu/mini-marketplace/internal/service"
+	"github.com/v-kuu/mini-marketplace/internal/config"
 )
 
 type fakeProductService struct {
@@ -121,7 +122,7 @@ func TestProductHandler_List(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			handler := NewProductHandler(tt.service)
+			handler := NewProductHandler(tt.service, config.Load())
 
 			req := httptest.NewRequest(http.MethodGet, "/products", nil)
 			rec := httptest.NewRecorder()
@@ -192,7 +193,7 @@ func TestProductHandler_Get(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			handler := NewProductHandler(tt.service)
+			handler := NewProductHandler(tt.service, config.Load())
 
 			req := httptest.NewRequest(http.MethodGet, "/products/2", nil)
 			rec := httptest.NewRecorder()
@@ -248,7 +249,7 @@ func TestProductHandler_Create(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			handler := NewProductHandler(tt.service)
+			handler := NewProductHandler(tt.service, config.Load())
 
 			req := httptest.NewRequest(http.MethodPost, "/products", strings.NewReader(tt.body))
 			req.Header.Set("Content-Type", "application/json")
@@ -327,7 +328,7 @@ func TestProductHandler_Delete(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			handler := NewProductHandler(tt.service)
+			handler := NewProductHandler(tt.service, config.Load())
 
 			req := httptest.NewRequest(http.MethodDelete, "/products/"+tt.id, nil)
 			rec := httptest.NewRecorder()
@@ -439,7 +440,7 @@ func TestProductHandler_Update(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			handler := NewProductHandler(tt.service)
+			handler := NewProductHandler(tt.service, config.Load())
 
 			req := httptest.NewRequest(http.MethodPut, "/products/"+tt.id, strings.NewReader(tt.body))
 			req.Header.Set("Content-Type", "application/json")
@@ -529,7 +530,7 @@ func TestProductHandler_Patch(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			handler := NewProductHandler(tt.service)
+			handler := NewProductHandler(tt.service, config.Load())
 
 			req := httptest.NewRequest(http.MethodPatch, "/products/"+tt.id, strings.NewReader(tt.body))
 			req.Header.Set("Content-Type", "application/json")
