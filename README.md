@@ -17,6 +17,7 @@ The project intentionally focuses on architecture, testability, and correctness 
 ## Architechture
 ```
 cmd/server          Application entrypoint and wiring
+internal/config     Configuration through environment variables
 internal/http
   └── api           HTTP handlers (transport layer)
   └── middleware    Prometheus middleware
