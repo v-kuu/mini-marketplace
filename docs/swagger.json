@@ -1,0 +1,12 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "A small CRUD api serving a simple Product model",
+        "title": "mini-marketplace",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/products",
+    "paths": {}
+}

@@ -10,6 +10,7 @@ import (
 	"github.com/v-kuu/mini-marketplace/internal/metrics"
 	"github.com/v-kuu/mini-marketplace/internal/config"
 	"github.com/v-kuu/mini-marketplace/internal/http/middleware"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 func AddRoutes() (*http.ServeMux, error) {
@@ -32,6 +33,7 @@ func AddRoutes() (*http.ServeMux, error) {
 	mux.Handle("/products/", middleware.Metrics(ProductByIDHandler, "/products/"))
 	mux.HandleFunc("/health", HealthHandler)
 	mux.Handle("/metrics", promhttp.Handler())
+	mux.Handle("/swagger/", httpSwagger.WrapHandler)
 
 	fs := http.FileServer(http.Dir("./web"))
 	mux.Handle("/", fs)

@@ -1,0 +1,9 @@
+basePath: /products
+host: localhost:8080
+info:
+  contact: {}
+  description: A small CRUD api serving a simple Product model
+  title: mini-marketplace
+  version: "1.0"
+paths: {}
+swagger: "2.0"

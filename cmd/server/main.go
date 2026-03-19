@@ -10,8 +10,14 @@ import (
 	"time"
 
 	"github.com/v-kuu/mini-marketplace/internal/http/api"
+	_ "github.com/v-kuu/mini-marketplace/docs"
 )
 
+// @title           mini-marketplace
+// @version         1.0
+// @description     A small CRUD api serving a simple Product model
+// @host            localhost:8080
+// @BasePath        /products
 func main() {
 	mux, err := api.AddRoutes()
 	if err != nil {

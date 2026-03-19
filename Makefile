@@ -15,3 +15,8 @@ clean:
 	docker builder prune -af
 	docker image prune -af
 	docker volume prune -af
+
+docs:
+	swag init -g cmd/server/main.go --parseDependency --parseInternal
+
+.PHONY: docs
