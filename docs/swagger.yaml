@@ -1,9 +1,55 @@
-basePath: /products
+basePath: /
+definitions:
+  github_com_v-kuu_mini-marketplace_internal_model.Product:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      price:
+        type: integer
+    type: object
+  internal_http_api.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact: {}
   description: A small CRUD api serving a simple Product model
   title: mini-marketplace
   version: "1.0"
-paths: {}
+paths:
+  /products/{id}:
+    get:
+      description: Returns a single product by its ID
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_v-kuu_mini-marketplace_internal_model.Product'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_http_api.ErrorResponse'
+        "408":
+          description: Request Timeout
+          schema:
+            $ref: '#/definitions/internal_http_api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_http_api.ErrorResponse'
+      summary: Get a product by ID
+      tags:
+      - products
 swagger: "2.0"

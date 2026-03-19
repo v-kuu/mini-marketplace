@@ -17,7 +17,7 @@ import (
 // @version         1.0
 // @description     A small CRUD api serving a simple Product model
 // @host            localhost:8080
-// @BasePath        /products
+// @BasePath        /
 func main() {
 	mux, err := api.AddRoutes()
 	if err != nil {

@@ -129,9 +129,19 @@ func (h *ProductHandler) ProductByID(w http.ResponseWriter, r *http.Request) {
 		default:
 			writeJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
-
 }
 
+// GetProduct godoc
+// @Summary      Get a product by ID
+// @Description  Returns a single product by its ID
+// @Tags         products
+// @Produce      json
+// @Param        id   path      string  true  "Product ID"
+// @Success      200  {object}  model.Product
+// @Failure      404  {object}  api.ErrorResponse
+// @Failure      408  {object}  api.ErrorResponse
+// @Failure      500  {object}  api.ErrorResponse
+// @Router       /products/{id} [get]
 func (h *ProductHandler) getProduct(w http.ResponseWriter, r *http.Request, id string) {
 	ctx, cancel := context.WithTimeoutCause(r.Context(), h.timeout, context.DeadlineExceeded)
 	defer cancel()

@@ -73,6 +73,13 @@ You can open a demo UI in your browser:
 ```
 http://localhost:8080/
 ```
+### API Documentation
+
+Interactive API documentation is available via Swagger UI when the server is running:
+```
+http://localhost:8080/swagger/
+```
+You can explore all endpoints, view request/response schemas, and test the API directly from your browser.
 
 ## Running Tests
 ```bash
