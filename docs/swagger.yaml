@@ -9,6 +9,13 @@ definitions:
       price:
         type: integer
     type: object
+  internal_http_api.CreateProductRequest:
+    properties:
+      name:
+        type: string
+      price:
+        type: integer
+    type: object
   internal_http_api.ErrorResponse:
     properties:
       error:
@@ -21,6 +28,44 @@ info:
   title: mini-marketplace
   version: "1.0"
 paths:
+  /products:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new product with idempotency
+      parameters:
+      - description: Product to create
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/internal_http_api.CreateProductRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_v-kuu_mini-marketplace_internal_model.Product'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_http_api.ErrorResponse'
+        "408":
+          description: Request Timeout
+          schema:
+            $ref: '#/definitions/internal_http_api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_http_api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_http_api.ErrorResponse'
+      summary: Create a new product
+      tags:
+      - products
   /products/{id}:
     get:
       description: Returns a single product by its ID

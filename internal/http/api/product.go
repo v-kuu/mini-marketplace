@@ -76,6 +76,19 @@ func validateCreate(req CreateProductRequest) error {
 	return nil
 }
 
+// CreateProduct godoc
+// @Summary      Create a new product
+// @Description  Creates a new product with idempotency
+// @Tags         products
+// @Accept       json
+// @Produce      json
+// @Param        payload   body   CreateProductRequest   true  "Product to create"
+// @Success      201  {object}  model.Product
+// @Failure      400  {object}  api.ErrorResponse
+// @Failure      408  {object}  api.ErrorResponse
+// @Failure      409  {object}  api.ErrorResponse
+// @Failure      500  {object}  api.ErrorResponse
+// @Router       /products [post]
 func (h *ProductHandler) createProduct(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeoutCause(r.Context(), h.timeout, context.DeadlineExceeded)
 	defer cancel()
