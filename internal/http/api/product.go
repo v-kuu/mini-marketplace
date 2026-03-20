@@ -322,6 +322,17 @@ func (h *ProductHandler) patchProduct(w http.ResponseWriter, r *http.Request, id
 	}
 }
 
+// DeleteProduct godoc
+// @Summary      Delete a product
+// @Description  Deletes a product by ID
+// @Tags         products
+// @Param        id  path      string  true  "Product ID"
+// @Success      204  "No content"
+// @Failure      400  {object}  ErrorResponse
+// @Failure      404  {object}  ErrorResponse
+// @Failure      408  {object}  ErrorResponse
+// @Failure      500  {object}  ErrorResponse
+// @Router       /products/{id} [delete]
 func (h *ProductHandler) deleteProduct(w http.ResponseWriter, r *http.Request, id string) {
 	ctx, cancel := context.WithTimeoutCause(r.Context(), h.timeout, context.DeadlineExceeded)
 	defer cancel()
