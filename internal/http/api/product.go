@@ -200,6 +200,20 @@ func validateUpdate(req UpdateProductRequest) error {
 	return nil
 }
 
+// UpdateProduct godoc
+// @Summary      Update a product
+// @Description  Updates an existing product by ID
+// @Tags         products
+// @Accept       json
+// @Produce      json
+// @Param        id       path      string               true  "Product ID"
+// @Param        payload  body      UpdateProductRequest  true  "Updated product data"
+// @Success      200      {object}  model.Product
+// @Failure      400      {object}  ErrorResponse
+// @Failure      404      {object}  ErrorResponse
+// @Failure      408      {object}  ErrorResponse
+// @Failure      500      {object}  ErrorResponse
+// @Router       /products/{id} [put]
 func (h *ProductHandler) updateProduct(w http.ResponseWriter, r *http.Request, id string) {
 	ctx, cancel := context.WithTimeoutCause(r.Context(), h.timeout, context.DeadlineExceeded)
 	defer cancel()

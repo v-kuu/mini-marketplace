@@ -21,6 +21,13 @@ definitions:
       error:
         type: string
     type: object
+  internal_http_api.UpdateProductRequest:
+    properties:
+      name:
+        type: string
+      price:
+        type: integer
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -117,6 +124,48 @@ paths:
           schema:
             $ref: '#/definitions/internal_http_api.ErrorResponse'
       summary: Get a product by ID
+      tags:
+      - products
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing product by ID
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated product data
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/internal_http_api.UpdateProductRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_v-kuu_mini-marketplace_internal_model.Product'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_http_api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_http_api.ErrorResponse'
+        "408":
+          description: Request Timeout
+          schema:
+            $ref: '#/definitions/internal_http_api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_http_api.ErrorResponse'
+      summary: Update a product
       tags:
       - products
 swagger: "2.0"
