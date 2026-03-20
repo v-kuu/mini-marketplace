@@ -44,6 +44,15 @@ func (h *ProductHandler) Products(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ListProducts godoc
+// @Summary      Get products
+// @Description  Returns all products in the database
+// @Tags         products
+// @Produce      json
+// @Success      200  {array}  model.Product
+// @Failure      408  {object}  api.ErrorResponse
+// @Failure      500  {object}  api.ErrorResponse
+// @Router       /products [get]
 func (h *ProductHandler) listProducts(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeoutCause(r.Context(), h.timeout, context.DeadlineExceeded)
 	defer cancel()
