@@ -73,13 +73,10 @@ You can open a demo UI in your browser:
 ```
 http://localhost:8080/
 ```
-### API Documentation
-
 Interactive API documentation is available via Swagger UI when the server is running:
 ```
 http://localhost:8080/swagger/
 ```
-You can explore all endpoints, view request/response schemas, and test the API directly from your browser.
 
 ## Running Tests
 ```bash
@@ -95,6 +92,11 @@ You can also load up a container environment with limited resources and Locust f
 make up
 ```
 You can then open ```http://localhost:8089``` for Locust interface and ```http://localhost:3000``` for Grafana dashboards. Login with ```admin``` ```admin```
+
+To clean up and remove containers:
+```bash
+make clean
+```
 
 ## Why This Project
 This repository exists to show how a small Go service can be structured in a realistic, production-ready way, even at a limited scope.
