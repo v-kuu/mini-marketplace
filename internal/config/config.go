@@ -8,17 +8,18 @@ import (
 type Config struct {
 	SEM_MAX int64
 	TIMEOUT int64
+	MONGODB_URI string
 }
 
 func Load() *Config {
 	cfg := &Config{
 		SEM_MAX: getEnvInt("SEM_MAX", 100),
 		TIMEOUT: getEnvInt("TIMEOUT", 30),
+		MONGODB_URI: getEnvStr("MONGODB_URI", ""),
 	}
 	return cfg
 }
 
-//nolint:all
 func getEnvStr(key, fallback string) string {
 	v, ok := os.LookupEnv(key)
 	if ok {

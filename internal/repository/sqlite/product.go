@@ -21,7 +21,7 @@ type ProductRepository struct {
 	sem *semaphore.Weighted
 }
 
-func OpenDB(dataSourceName string) (*sql.DB, error) {
+func openDB(dataSourceName string) (*sql.DB, error) {
 	db, err := sql.Open("sqlite3", dataSourceName)
 	if err != nil {
 		return nil, err
@@ -33,11 +33,21 @@ func OpenDB(dataSourceName string) (*sql.DB, error) {
 	return db, nil
 }
 
-func NewProductRepository(db *sql.DB, cfg *config.Config) *ProductRepository {
+func NewProductRepository(cfg *config.Config) (*ProductRepository, func(), error) {
+	db, err := openDB("file:products.db?_foreign_keys=on")
+	if err != nil {
+		return nil, nil, err
+	}
 	return &ProductRepository{
 		db: db,
 		sem: semaphore.NewWeighted(cfg.SEM_MAX),
-	}
+	},
+	func () {
+		if err := db.Close(); err != nil {
+			log.Printf("sqlite close: %v", err)
+		}
+	},
+	nil
 }
 
 func (r *ProductRepository) List(ctx context.Context) ([]model.Product, error) {
