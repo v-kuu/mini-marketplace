@@ -1,6 +1,6 @@
 services:
   api:
-    build: .
+    build: ../
     ports:
       - "8080:8080"
     env_file:
@@ -24,7 +24,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./LoadTest/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -43,8 +43,8 @@ services:
       - GF_INSTALL_PLUGINS=grafana-piechart-panel
     volumes:
       - grafana-data:/var/lib/grafana
-      - ./LoadTest/grafana/provisioning:/etc/grafana/provisioning
-      - ./LoadTest/grafana/dashboards:/var/lib/grafana/dashboards
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
     depends_on:
       - prometheus
 
@@ -53,7 +53,7 @@ services:
     ports:
       - "8089:8089"
     volumes:
-      - ./LoadTest/locustfile.py:/home/locust/locustfile.py
+      - ./locustfile.py:/home/locust/locustfile.py
     command: -f /home/locust/locustfile.py --host=http://api:8080
     depends_on:
       api:

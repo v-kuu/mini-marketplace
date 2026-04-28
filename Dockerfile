@@ -6,6 +6,8 @@ RUN go mod download
 RUN apk add --no-cache build-base
 COPY internal ./internal
 COPY cmd ./cmd
+RUN go install github.com/swaggo/swag/cmd/swag@latest
+RUN swag init -g cmd/server/main.go --parseDependency --parseInternal
 RUN CGO_ENABLED=1 GOOS=linux go build -o api ./cmd/server
 
 FROM alpine:latest
