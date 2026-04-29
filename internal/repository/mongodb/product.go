@@ -3,6 +3,7 @@ package mongodb
 import (
 	"context"
 	"log"
+	"errors"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -17,6 +18,7 @@ import (
 
 type ProductRepository struct {
 	client *mongo.Client
+	collection *mongo.Collection
 	sem *semaphore.Weighted
 }
 
@@ -35,6 +37,7 @@ func NewProductRepository (cfg *config.Config) (*ProductRepository, func(), erro
 	}
 	return &ProductRepository{
 		client: client,
+		collection: client.Database("mini-marketplace").Collection("products"),
 		sem: semaphore.NewWeighted(cfg.SEM_MAX),
 	},
 	func() {
@@ -46,21 +49,76 @@ func NewProductRepository (cfg *config.Config) (*ProductRepository, func(), erro
 }
 
 func (r *ProductRepository) List(ctx context.Context) ([]model.Product, error) {
+	cursor, err := r.collection.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
 
+	var products []model.Product
+	if err := cursor.All(ctx, &products); err != nil {
+		return nil, err
+	}
+	return products, nil
 }
 
 func (r *ProductRepository) GetByID(ctx context.Context, id string) (*model.Product, error) {
-
+	filter := bson.M{"_id": id}
+	var p model.Product
+	err := r.collection.FindOne(ctx, filter).Decode(&p)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &p, nil
 }
 
 func (r *ProductRepository) Create(ctx context.Context, p model.Product) error {
-
+	_, err := r.collection.InsertOne(ctx, p)
+	if err != nil {
+		if mongo.IsDuplicateKeyError(err) {
+			return service.ErrProductAlreadyExists
+		}
+		return err
+	}
+	return nil
 }
 
 func (r *ProductRepository) Delete(ctx context.Context, id string) error {
-
+	filter := bson.M{"_id": id}
+	result, err := r.collection.DeleteOne(ctx, filter)
+	if err != nil {
+		return err
+	}
+	if result.DeletedCount == 0 {
+		return service.ErrProductNotFound
+	}
+	return nil
 }
 
 func (r *ProductRepository) Update(ctx context.Context, p model.Product) error {
+	filter := bson.M{"_id": p.ID}
 
+	fields := bson.M{}
+	if p.Name != "" {
+		fields["name"] = p.Name
+	}
+	if p.Price > 0 {
+		fields["price"] = p.Price
+	}
+	if len(fields) == 0 {
+		return nil
+	}
+	update := bson.M{"$set": fields}
+
+	result, err := r.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return err
+	}
+	if result.MatchedCount == 0 {
+		return service.ErrProductNotFound
+	}
+	return nil
 }

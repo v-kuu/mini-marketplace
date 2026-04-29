@@ -15,7 +15,7 @@ db.createCollection("products", {
 					description: "required string"
 				},
 				price: {
-					bsonType: "int",
+					bsonType: "long",
 					description: "required integer"
 				}
 			}
