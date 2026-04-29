@@ -1,3 +1,5 @@
+name: mini-marketplace loadtest
+
 services:
   api:
     build: ../

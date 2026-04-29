@@ -14,6 +14,7 @@ test:
 	cd ./LoadTest/ && docker compose up --build -d
 
 clean:
+	docker compose down -v --remove-orphans
 	cd ./LoadTest/ && docker compose down -v --remove-orphans
 	docker builder prune -af
 	docker image prune -af
@@ -22,4 +23,4 @@ clean:
 docs:
 	swag init -g cmd/server/main.go --parseDependency --parseInternal
 
-.PHONY: docs
+.PHONY: build run up down test clean docs

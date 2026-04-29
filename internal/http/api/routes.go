@@ -24,10 +24,10 @@ func AddRoutes() (*http.ServeMux, func(), error) {
 	var err error
 
 	if cfg.MONGODB_URI == "" {
-		log.Printf("No mongodb URI set, defaulting to sqlite")
+		log.Println("No mongodb URI set, defaulting to sqlite")
 		repo, cleanup, err = sqlite.NewProductRepository(cfg)
 	} else {
-		log.Printf("Connecting to mongodb")
+		log.Println("Connecting to mongodb")
 		repo, cleanup, err = mongodb.NewProductRepository(cfg)
 	}
 	if err != nil {
