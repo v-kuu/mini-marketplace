@@ -10,13 +10,13 @@ The project intentionally focuses on architecture, testability, and correctness 
 - Idiomatic Go service structure
 - Interface-driven design and dependency injection
 - Explicit error handling and context propagation
-- Real persistence using SQLite (database/sql)
+- Real persistence using either SQLite or MongoDB
 - Multiple layers of automated testing (unit, handler, integration)
 - Production-style repository and service boundaries
 
 ## Architechture
 ```
-cmd/server          Application entrypoint and wiring
+cmd/server          Application entrypoint
 internal/config     Configuration through environment variables
 internal/http
   └── api           HTTP handlers (transport layer)
@@ -25,6 +25,7 @@ internal/metrics    Prometheus metrics
 internal/service    Business logic
 internal/repository
   └── sqlite        SQLite implementation
+  └── mongodb       MongoDB implementation
 internal/model      Domain models
 ```
 ### Design principles
@@ -45,6 +46,7 @@ The API follows REST principles:
 ## Implemented Features
 - JSON API with proper status codes
 - SQLite-backed repository
+- MongoDB-backed repository
 - Context-aware database queries with timeouts
 - Dependency injection via interfaces
 - CI pipeline (Github Actions)
@@ -61,13 +63,18 @@ The service exposes Prometheus-compatible metrics at ```/metrics```, including r
 ## Testing
 - Unit tests (table-driven)
 - HTTP handler tests (```httptest```)
-- Integration tests with in-memory SQLite
+- Integration tests with in-memory SQLite and testcontainers for MongoDB
 - Error-path and cancellation coverage
 - Load testing with containers
 
 ## Running the project
+A local binary that defaults to SQLite:
 ```bash
 make run
+```
+A container that defaults to MongoDB:
+```bash
+make up
 ```
 You can open a demo UI in your browser:
 ```
@@ -89,7 +96,7 @@ go test -race ./...
 
 You can also load up a container environment with limited resources and Locust for load testing
 ```bash
-make up
+make test
 ```
 You can then open ```http://localhost:8089``` for Locust interface and ```http://localhost:3000``` for Grafana dashboards. Login with ```admin``` ```admin```
 
@@ -102,10 +109,6 @@ make clean
 This repository exists to show how a small Go service can be structured in a realistic, production-ready way, even at a limited scope.
 
 The emphasis is on clear boundaries, correctness, and testability, which scale well as complexity grows.
-
-### Notes
-- SQLite is used for simplicity; the repository abstraction allows replacing it without changes to handlers or services.
-- Integration tests use an in-memory database for speed and determinism.
 
 ## What I Learned
 - Designing testable Go code using interfaces
