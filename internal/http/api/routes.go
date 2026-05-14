@@ -3,6 +3,8 @@ package api
 import (
 	"net/http"
 	"log"
+	"embed"
+	"io/fs"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
@@ -14,6 +16,9 @@ import (
 	"github.com/v-kuu/mini-marketplace/internal/http/middleware"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
+
+//go:embed web/index.html
+var webFS embed.FS
 
 func AddRoutes() (*http.ServeMux, func(), error) {
 	metrics.Register()
@@ -45,8 +50,13 @@ func AddRoutes() (*http.ServeMux, func(), error) {
 	mux.Handle("/metrics", promhttp.Handler())
 	mux.Handle("/swagger/", httpSwagger.WrapHandler)
 
-	fs := http.FileServer(http.Dir("./web"))
-	mux.Handle("/", fs)
+	sub, err := fs.Sub(webFS, "web")
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
+
+	mux.Handle("/", http.FileServer(http.FS(sub)))
 
 	return mux, cleanup, nil
 }

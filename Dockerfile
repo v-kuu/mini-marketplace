@@ -15,7 +15,6 @@ FROM alpine:latest
 WORKDIR /root/
 COPY --from=builder /app/api .
 COPY products.db ./products.db
-COPY web/index.html ./web/index.html
 RUN apk --no-cache add wget
 EXPOSE 8080
 CMD ["./api"]

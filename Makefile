@@ -15,7 +15,7 @@ test:
 
 clean:
 	docker compose down -v --remove-orphans
-	cd ./LoadTest/ && docker compose down -v --remove-orphans
+	(cd ./LoadTest/ && docker compose down -v --remove-orphans)
 	docker builder prune -af
 	docker image prune -af
 	docker volume prune -af
