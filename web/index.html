@@ -21,7 +21,7 @@
 	<button onclick="patchProduct()">Patch</button>
 
 	<script>
-		const API = "http://localhost:8080";
+		const API = window.location.origin;
 
 		async function loadProducts() {
 			const res = await fetch(`${API}/products`);

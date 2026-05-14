@@ -33,7 +33,6 @@ func AddRoutes() (*http.ServeMux, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	defer cleanup()
 	svc := service.NewProductService(repo)
 	handler := NewProductHandler(svc, cfg)
 	ProductsHandler := http.HandlerFunc(handler.Products)
