@@ -42,7 +42,10 @@ func NewProductRepository (cfg *config.Config) (*ProductRepository, func(), erro
 			Options: options.Index().SetUnique(true),
 		},
 	}
-	coll.Indexes().CreateMany(context.Background(), indexes)
+	_, err = coll.Indexes().CreateMany(context.Background(), indexes)
+	if err != nil {
+		log.Printf("failed to create mongodb indexes: %v", err)
+	}
 
 	return &ProductRepository{
 		client: client,
@@ -62,7 +65,11 @@ func (r *ProductRepository) List(ctx context.Context) ([]model.Product, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(ctx)
+	defer func () {
+		if err := cursor.Close(ctx); err != nil {
+			log.Printf("cursor.Close(): %v", err)
+		}
+	}()
 
 	var products []model.Product
 	if err := cursor.All(ctx, &products); err != nil {
