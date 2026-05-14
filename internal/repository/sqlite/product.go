@@ -21,7 +21,7 @@ type ProductRepository struct {
 	sem *semaphore.Weighted
 }
 
-func OpenDB(dataSourceName string) (*sql.DB, error) {
+func openDB(dataSourceName string) (*sql.DB, error) {
 	db, err := sql.Open("sqlite3", dataSourceName)
 	if err != nil {
 		return nil, err
@@ -29,15 +29,46 @@ func OpenDB(dataSourceName string) (*sql.DB, error) {
 	if err := db.Ping(); err != nil {
 		return nil, err
 	}
-
+	if err := migrate(db); err != nil {
+		return nil, err
+	}
 	return db, nil
 }
 
-func NewProductRepository(db *sql.DB, cfg *config.Config) *ProductRepository {
+func migrate(db *sql.DB) error {
+	_, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS products (
+			id	TEXT	PRIMARY KEY,
+			name	TEXT	NOT NULL,
+			price	INTEGER	NOT NULL
+		);
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_products_name ON products(name);
+	`)
+	return err
+}
+
+func NewProductRepository(cfg *config.Config) (*ProductRepository, func(), error) {
+	var dataSourceName string;
+	if cfg.TESTING == "" {
+		dataSourceName = "file:products.db?_foreign_keys=on"
+	} else {
+		dataSourceName = ":memory:"
+	}
+
+	db, err := openDB(dataSourceName)
+	if err != nil {
+		return nil, nil, err
+	}
 	return &ProductRepository{
 		db: db,
 		sem: semaphore.NewWeighted(cfg.SEM_MAX),
-	}
+	},
+	func () {
+		if err := db.Close(); err != nil {
+			log.Printf("sqlite close: %v", err)
+		}
+	},
+	nil
 }
 
 func (r *ProductRepository) List(ctx context.Context) ([]model.Product, error) {

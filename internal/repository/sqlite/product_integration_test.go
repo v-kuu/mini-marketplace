@@ -2,7 +2,6 @@ package sqlite
 
 import (
 	"context"
-	"database/sql"
 	"testing"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -10,51 +9,28 @@ import (
 	"github.com/v-kuu/mini-marketplace/internal/config"
 )
 
-func setupTestDB(t *testing.T) *sql.DB {
+func setupTestDB(t *testing.T) (*ProductRepository, func()) {
 	t.Helper()
 
-	db, err := sql.Open("sqlite3", ":memory:")
+	cfg := config.Load()
+	cfg.TESTING = "YES"
+	repo, cleanup, err := NewProductRepository(cfg)
 	if err != nil {
-		t.Fatalf("Failed to open db: %v", err)
+		t.Fatalf("failed to create a repo: %v", err)
+	}
+	err = repo.Create(t.Context(), model.Product{ID: "1", Name: "Coffee", Price: 499})
+	if err != nil {
+		t.Fatalf("Create failed: %v", err)
 	}
 
-	schema := `
-	CREATE TABLE products (
-		id TEXT PRIMARY KEY,
-		name TEXT NOT NULL,
-		price INTEGER NOT NULL
-	);
-	`
-	
-	if _, err := db.Exec(schema); err != nil {
-		t.Fatalf("Failed to create schema: %v", err)
-	}
-
-	return db
+	return repo, cleanup
 }
 
 func TestProductRepository_List(t *testing.T) {
-	db := setupTestDB(t)
-	defer func () {
-		if err := db.Close(); err != nil {
-			t.Fatalf("Failed to close db: %v", err)
-		}
-	}()
+	repo, cleanup := setupTestDB(t)
+	defer cleanup()
 
-	cfg := config.Load()
-	repo := NewProductRepository(db, cfg)
-
-	ctx := context.Background()
-
-	_, err := db.Exec(
-		`INSERT INTO products (id, name, price) VALUES (?, ?, ?)`,
-		"1", "Coffee", 499,
-	)
-	if err != nil {
-		t.Fatalf("Failed to insert product: %v", err)
-	}
-
-	products, err := repo.List(ctx)
+	products, err := repo.List(t.Context())
 	if err != nil {
 		t.Fatalf("List failed: %v", err)
 	}
@@ -69,17 +45,10 @@ func TestProductRepository_List(t *testing.T) {
 }
 
 func TestProductRepository_List_ContextCancelled(t *testing.T) {
-	db := setupTestDB(t)
-	defer func () {
-		if err := db.Close(); err != nil {
-			t.Fatalf("Failed to close db: %v", err)
-		}
-	}()
-
-	cfg := config.Load()
-	repo := NewProductRepository(db, cfg)
+	repo, cleanup := setupTestDB(t)
+	defer cleanup()
 	
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
 	_, err := repo.List(ctx)
@@ -89,25 +58,10 @@ func TestProductRepository_List_ContextCancelled(t *testing.T) {
 }
 
 func TestProductRepository_GetByID(t *testing.T) {
-	db := setupTestDB(t)
-	defer func () {
-		if err := db.Close(); err != nil {
-			t.Fatalf("Failed to close db: %v", err)
-		}
-	}()
+	repo, cleanup := setupTestDB(t)
+	defer cleanup()
 
-	cfg := config.Load()
-	repo := NewProductRepository(db, cfg)
-
-	ctx := context.Background()
-
-	_, err := db.Exec(
-		`INSERT INTO products (id, name, price) VALUES (?, ?, ?)`,
-		"1", "Coffee", 499,
-	)
-	if err != nil {
-		t.Fatalf("Failed to insert product: %v", err)
-	}
+	ctx := t.Context()
 
 	product, err := repo.GetByID(ctx, "1")
 	if err != nil {
@@ -125,59 +79,34 @@ func TestProductRepository_GetByID(t *testing.T) {
 }
 
 func TestProductRepository_Create(t *testing.T) {
-	db := setupTestDB(t)
-	defer func () {
-		if err := db.Close(); err != nil {
-			t.Fatalf("Failed to close db: %v", err)
-		}
-	}()
+	repo, cleanup := setupTestDB(t)
+	defer cleanup()
 
-	cfg := config.Load()
-	repo := NewProductRepository(db, cfg)
+	ctx := t.Context()
 
-	ctx := context.Background()
-
-	err := repo.Create(ctx, model.Product{ID: "1", Name: "Coffee", Price: 499})
+	err := repo.Create(ctx, model.Product{ID: "2", Name: "Candy", Price: 499})
 	if err != nil {
 		t.Fatalf("Create failed: %v", err)
 	}
 
-	product, err := repo.GetByID(ctx, "1")
-	if err == nil && product.Name != "Coffee" {
-		t.Fatalf("Expected Coffee, got %s", product.Name)
+	product, err := repo.GetByID(ctx, "2")
+	if err == nil && product.Name != "Candy" {
+		t.Fatalf("Expected Candy, got %s", product.Name)
 	} else if err != nil {
 		t.Fatalf("GetByID failed: %v", err)
 	}
 }
 
 func TestProductRepository_Delete(t *testing.T) {
-	db := setupTestDB(t)
-	defer func () {
-		if err := db.Close(); err != nil {
-			t.Fatalf("Failed to close db: %v", err)
-		}
-	}()
+	repo, cleanup := setupTestDB(t)
+	defer cleanup()
 
-	cfg := config.Load()
-	repo := NewProductRepository(db, cfg)
+	ctx := t.Context()
 
-	ctx := context.Background()
-
-	_, err := db.Exec(
-		`INSERT INTO products (id, name, price) VALUES (?, ?, ?)`,
-		"1", "Coffee", 499,
-	)
+	err := repo.Create(ctx, model.Product{ID: "2", Name: "Candy", Price: 499})
 	if err != nil {
-		t.Fatalf("Failed to insert product: %v", err)
+		t.Fatalf("Create failed: %v", err)
 	}
-	_, err = db.Exec(
-		`INSERT INTO products (id, name, price) VALUES (?, ?, ?)`,
-		"2", "Tea", 499,
-	)
-	if err != nil {
-		t.Fatalf("Failed to insert product: %v", err)
-	}
-
 
 	err = repo.Delete(ctx, "2")
 	if err != nil {
@@ -196,27 +125,12 @@ func TestProductRepository_Delete(t *testing.T) {
 }
 
 func TestProductRepository_Update(t *testing.T) {
-	db := setupTestDB(t)
-	defer func () {
-		if err := db.Close(); err != nil {
-			t.Fatalf("Failed to close db: %v", err)
-		}
-	}()
+	repo, cleanup := setupTestDB(t)
+	defer cleanup()
 
-	cfg := config.Load()
-	repo := NewProductRepository(db, cfg)
+	ctx := t.Context()
 
-	ctx := context.Background()
-
-	_, err := db.Exec(
-		`INSERT INTO products (id, name, price) VALUES (?, ?, ?)`,
-		"1", "Coffee", 499,
-	)
-	if err != nil {
-		t.Fatalf("Failed to insert product: %v", err)
-	}
-
-	err = repo.Update(ctx, model.Product{ID: "1", Name: "Tea", Price: 499})
+	err := repo.Update(ctx, model.Product{ID: "1", Name: "Tea", Price: 499})
 	if err != nil {
 		t.Fatalf("Update failed: %v", err)
 	}

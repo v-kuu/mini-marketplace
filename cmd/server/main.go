@@ -19,10 +19,11 @@ import (
 // @host            localhost:8080
 // @BasePath        /
 func main() {
-	mux, err := api.AddRoutes()
+	mux, cleanup, err := api.AddRoutes()
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer cleanup()
 	server := &http.Server{
 		Addr: ":8080",
 		Handler: mux,
