@@ -9,6 +9,7 @@ type Config struct {
 	SEM_MAX int64
 	TIMEOUT int64
 	MONGODB_URI string
+	TESTING string
 }
 
 func Load() *Config {
@@ -16,6 +17,7 @@ func Load() *Config {
 		SEM_MAX: getEnvInt("SEM_MAX", 100),
 		TIMEOUT: getEnvInt("TIMEOUT", 30),
 		MONGODB_URI: getEnvStr("MONGODB_URI", ""),
+		TESTING: getEnvStr("TESTING", ""),
 	}
 	return cfg
 }

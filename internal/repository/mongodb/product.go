@@ -12,7 +12,6 @@ import (
 
 	"github.com/v-kuu/mini-marketplace/internal/model"
 	"github.com/v-kuu/mini-marketplace/internal/service"
-	"github.com/v-kuu/mini-marketplace/internal/metrics"
 	"github.com/v-kuu/mini-marketplace/internal/config"
 )
 
@@ -35,9 +34,19 @@ func NewProductRepository (cfg *config.Config) (*ProductRepository, func(), erro
 	if err != nil {
 		return nil, nil, err
 	}
+	coll := client.Database("mini-marketplace").Collection("products")
+
+	indexes := []mongo.IndexModel{
+		{
+			Keys: bson.M{"name": 1},
+			Options: options.Index().SetUnique(true),
+		},
+	}
+	coll.Indexes().CreateMany(context.Background(), indexes)
+
 	return &ProductRepository{
 		client: client,
-		collection: client.Database("mini-marketplace").Collection("products"),
+		collection: coll,
 		sem: semaphore.NewWeighted(cfg.SEM_MAX),
 	},
 	func() {
@@ -115,6 +124,9 @@ func (r *ProductRepository) Update(ctx context.Context, p model.Product) error {
 
 	result, err := r.collection.UpdateOne(ctx, filter, update)
 	if err != nil {
+		if mongo.IsDuplicateKeyError(err) {
+			return service.ErrProductAlreadyExists
+		}
 		return err
 	}
 	if result.MatchedCount == 0 {
